@@ -5,6 +5,89 @@ int MessageHandler(char *msg, int pid)
     return 0;
 }
 
+int ReadHandler(short inum, int position, void *buf, int size)
+{
+    /*
+        - get the index node using inum
+        int total_read_count = 0;
+        while (
+            read_count < size 
+            && position + total_read_count < inode->size) {
+            block_num = (position + total_read_count) / BLOCKSIZE;
+            block_offset = (position + total_read_count) % BLOCKSIZE;
+            if (block_num < NUM_DIRECT) {
+                // direct block
+                get block node using inode->direct[blocknum]
+            }
+            else {
+                // indirect
+                if (blocknum > NUMDIRECT) return ERROR
+                get block node using inode->indirect
+            }
+            get block_contnet of block's content using block_offset
+
+
+            req_left = size - total_read_count;
+            file_left = inode->size - (postion + total_read_count);
+            block_left = BLOCKSIZE - block_offset; 
+            
+            read_count = req_left;
+            if (read_count > file_left) read_count = file_left;
+            if (read_count > block_left) read_count = block_left;
+
+
+            memcpy(buf + total_read_count, block_content, read_count);
+            total_read_count += read_count;
+        }
+        return total_read_count;
+    */
+    return 0;
+}
+
+int WriteHandler(short inum, int position, void *buf, int size)
+{
+    /*
+        - get the index node using inum
+
+        if (position + size > BLOCKSIZE * (inode->size/ BLOCKSIZE + 1)) {
+            need to assign new block 
+        }
+
+        int total_write_count = 0;
+        while (
+            write_count < size 
+            && position + total_write_count < inode->size) {
+            block_num = (position + total_write_count) / BLOCKSIZE;
+            block_offset = (position + total_write_count) % BLOCKSIZE;
+            if (block_num < NUM_DIRECT) {
+                // direct block
+                get block node using inode->direct[blocknum]
+            }
+            else {
+                // indirect
+                if (blocknum > NUMDIRECT) return ERROR
+                get block node using inode->indirect
+            }
+            get block_contnet of block's content using block_offset
+
+            
+            req_left = size - total_write_count;
+            file_left = inode->size - (postion + total_write_count);
+            block_left = BLOCKSIZE - block_offset; 
+            
+            write_count = req_left;
+            if (write_count > file_left) write_count = file_left;
+            if (write_count > block_left) write_count = block_left;
+
+
+            memcpy(block_content, buf + total_write_count, write_count);
+            total_write_count += read_count;
+        }
+        return total_write_count;
+    */
+    return 0;
+}
+
 int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
 {   
     /*
