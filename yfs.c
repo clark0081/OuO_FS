@@ -69,7 +69,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
                 get block node using inode->indirect
             }
             get block_contnet of block's content using block_offset
-
+            set this block to dirty
             
             req_left = size - total_write_count;
             file_left = inode->size - (postion + total_write_count);
