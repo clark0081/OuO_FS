@@ -12,9 +12,18 @@ struct file {
 };
 
 struct file open_files[MAX_OPEN_FILES];
-int open_files_count = 0;
+int open_files_count;
 struct proc_cur_dir *pcd_head = NULL;
 
+
+
+void Init_OpenfileVector(){
+    for(int i = 0; i < MAX_OPEN_FILES; i++){
+        open_files[i].inum = -1;
+        open_files[i].position = 0;
+    }
+    open_files_count = 0;
+}
 /*
     given pid, find the current directory of process pid
     if not found create a new root
