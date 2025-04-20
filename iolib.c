@@ -5,11 +5,35 @@
 #include "iolib.h"
 #include "yfs.h"
 
-short cur_dir_idx = ROOTINODE;
 /* 
     create message buffer
     send it to ysf process
 */
+
+int Open(char *pathname) {
+
+
+    // pathname, pathname.size
+
+    // link fd to inode
+    // return fd
+}
+
+int Close(int fd) {
+
+    // return ERROR if it isn't  a valid, exist fd
+
+}
+
+int Create(char *pathname) {
+
+
+    // pathname, pathname.size
+
+    // link fd to inode
+    // return fd
+
+}
 
 int Read(int fd, void *buf, int size) {
     // used fd find index node, current position
@@ -29,16 +53,16 @@ int Write(int fd, void *buf, int size) {
 }
 
 int SymLink(char *oldname, char *newname) {
-    // oldname, oldsize, newname, newsize, current directory
+    // oldname, oldsize, newname, newsize
 }
 
 int ReadLink(char *pathname, char *buf, int len) {
-    // pathname, pathname.size, buf, len, current directory
+    // pathname, pathname.size, buf, len
 }
 
 
 int MkDir(char *pathname) {
-    // pathname, pathname.size, current directory
+    // pathname, pathname.size
 }
 
 int RmDir(char *pathname) {
@@ -48,12 +72,12 @@ int RmDir(char *pathname) {
 }
 
 int ChDir(char *pathname) {
-    // pathname, pathname.size, current directory
+    // pathname, pathname.size
 
 }
 
 int Stat(char *pathname, struct Stat *statbuf) {
-    // pathname, pathname.size, statbuf, current directory
+    // pathname, pathname.size, statbuf
 }
 
 int Sync(void) {
