@@ -43,6 +43,8 @@ int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx);
 int SyncHandler(void);
 int ShutdownHandler(void);
 
+void Init_OpenfileVector();
+
 
 
 

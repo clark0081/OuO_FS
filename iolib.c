@@ -5,10 +5,68 @@
 #include "iolib.h"
 #include "yfs.h"
 
+struct proc_cur_dir {
+    int                 pid;
+    short               inum;
+    struct proc_cur_dir *next;
+};
+
+struct file {
+    short   inum;
+    int     position;
+};
+
+/*
+    release all proc_cur_dir memory
+    should be call in shutdown()
+*/
+void free_pcd(struct proc_cur_dir *cur) {
+    if (cur == NULL) 
+        return;
+    if (cur->next != NULL)
+        free_pcd(cur->next);
+    free(cur);
+}
+
+struct file open_files[MAX_OPEN_FILES];
+int open_files_count;
+int open_files_flag = -1;
+struct proc_cur_dir *pcd_head = NULL;
+
+
+
+void Init_OpenfileVector(){
+    for(int i = 0; i < MAX_OPEN_FILES; i++){
+        open_files[i].inum = -1;
+        open_files[i].position = 0;
+    }
+    open_files_count = 0;
+    open_files_flag = 0;
+}
+struct proc_cur_dir* find_cur_dir (int pid) {
+    struct proc_cur_dir *cur = pcd_head;
+    while (cur != NULL) {
+        if (cur->pid == pid){
+            return cur;
+        }
+        else{
+            cur = cur->next;
+        }
+    }
+    struct proc_cur_dir *newbie = malloc(sizeof(struct proc_cur_dir));
+    newbie->pid = pid;
+    newbie->inum = ROOTINODE;
+    newbie->next = pcd_head;
+    pcd_head = newbie;
+    return newbie;
+}
+
 /* 
     create message buffer
     send it to ysf process
 */
+
+
 
 int Open(char *pathname) {
 
@@ -85,5 +143,15 @@ int Sync(void) {
 }
 
 int Shutdown(void) {
+
+}
+
+int Seek(int fd, int offset, int whence){
+
+}
+int Link(char *oldname, char *newname){
+
+}
+int Unlink(char *pathname){
 
 }
