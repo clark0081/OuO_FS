@@ -5,33 +5,17 @@
 #include "iolib.h"
 #include "yfs.h"
 
-struct proc_cur_dir {
-    int                 pid;
-    short               inum;
-    struct proc_cur_dir *next;
-};
 
 struct file {
     short   inum;
     int     position;
 };
 
-/*
-    release all proc_cur_dir memory
-    should be call in shutdown()
-*/
-void free_pcd(struct proc_cur_dir *cur) {
-    if (cur == NULL) 
-        return;
-    if (cur->next != NULL)
-        free_pcd(cur->next);
-    free(cur);
-}
 
 struct file open_files[MAX_OPEN_FILES];
-int open_files_count;
-int open_files_flag = -1;
-struct proc_cur_dir *pcd_head = NULL;
+int         open_files_count = 0;
+int         open_files_flag = -1;
+short       proc_cur_dir = 0;
 
 
 
@@ -42,23 +26,6 @@ void Init_OpenfileVector(){
     }
     open_files_count = 0;
     open_files_flag = 0;
-}
-struct proc_cur_dir* find_cur_dir (int pid) {
-    struct proc_cur_dir *cur = pcd_head;
-    while (cur != NULL) {
-        if (cur->pid == pid){
-            return cur;
-        }
-        else{
-            cur = cur->next;
-        }
-    }
-    struct proc_cur_dir *newbie = malloc(sizeof(struct proc_cur_dir));
-    newbie->pid = pid;
-    newbie->inum = ROOTINODE;
-    newbie->next = pcd_head;
-    pcd_head = newbie;
-    return newbie;
 }
 
 /* 
