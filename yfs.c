@@ -1,16 +1,6 @@
 #include "yfs.h"
 
 
-typedef struct block{
-    int dirty;
-    int blockNum;
-    struct block* pre;
-    struct block* next;
-    // BLOCKSIZE = SECTORSIZE = 512
-    char data[BLOCKSIZE];
-} Block;
-
-
 
 int MessageHandler(char *msg, int pid)
 {
