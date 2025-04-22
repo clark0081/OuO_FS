@@ -61,6 +61,9 @@ int ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx);
 // on failure ERROR
 int MkDirHandler(char *pathname, short cur_dir_idx);
 int RmDirHandler(char *pathname, short cur_dir_idx);
+
+// on success inum of current directory
+// on failure ERROR
 int ChDirHandler(char *pathname, short cur_dir_idx);
 
 // State
