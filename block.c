@@ -30,10 +30,14 @@ struct inode_info* get_inode(int inodeNum){
     int blockNum = INODE_TO_BLOCK(inodeNum);
     BLOCK_INFO* tempBlock = get_block(blockNum);
     int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-    struct inode* myInode = (struct inode*)(tempBlock->data + offset);
+    //struct inode* myInode = (struct inode*)(tempBlock->data + offset);
+    struct inode* myInode = malloc(sizeof(struct inode));
+    memcpy(myInode, tempBlock->data + offset, sizeof(struct inode));
     res->next = NULL;
     res->prev = NULL;
     res->val = myInode;
+    res->isDirty = 0;
+    res->inodeNum = inodeNum;
     return res;
 }
 
@@ -242,7 +246,7 @@ void delete_block_hashTable(int key) {
         current = current->next;
     }
 }
-void free_inode_block_hashTable() {
+void clear_inode_block_hashTable() {
     for (int i = 0; i < HASH_TABLE_SIZE; ++i) {
         INODE_WRAP* cur_i = inode_hashtable[i];
         BLOCK_WRAP* cur_b = block_hashtable[i];

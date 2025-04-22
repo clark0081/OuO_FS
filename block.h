@@ -79,18 +79,19 @@ typedef struct block_wrap{
 INODE_WRAP* inode_hashtable[HASH_TABLE_SIZE]; 
 BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE]; 
 
-
+// init hashTable and bitMap
 void init_inode_block();
 // get inode from disk
 struct* inode_info get_inode(int);
 struct* block_info get_block(int);
+
 void insert_inode_hashTable(int , INODE_INFO* );
 void insert_block_hashTable(int , BLOCK_INFO* );
 INODE_INFO* search_inode_hashTable(int);
 BLOCK_INFO* search_block_hashTable(int);
 void delete_inode_hashTable(int);
 void delete_block_hashTable(int);
-void free_inode_block_hashTable();
+void clear_inode_block_hashTable();
 //-------------------------------------------------------------
 //LRU
 
