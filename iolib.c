@@ -61,7 +61,7 @@ int Open(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "Open(): Send error!\n");
@@ -149,7 +149,7 @@ int Create(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "Create(): Send error!\n");
@@ -204,7 +204,7 @@ int Read(int fd, void *buf, int size) {
     memcpy(message + 3, &open_files[fd].position, sizeof(int));
     memcpy(message + 7, &buf, sizeof(void*));
     memcpy(message + 15, &size, sizeof(int));
-    if (Send(message, -YFS_PID) == -1) {
+    if (Send(message, -FILE_SERVER) == -1) {
         TracePrintf(1, "Read(): Send error!\n");
         return ERROR;
     }
@@ -244,7 +244,7 @@ int Write(int fd, void *buf, int size) {
     memcpy(message + 3, &open_files[fd].position, sizeof(int));
     memcpy(message + 7, &buf, sizeof(void*));
     memcpy(message + 15, &size, sizeof(int));
-    if (Send(message, -YFS_PID) == -1) {
+    if (Send(message, -FILE_SERVER) == -1) {
         TracePrintf(1, "Write(): Send error!\n");
         return ERROR;
     }
@@ -284,7 +284,7 @@ int SymLink(char *oldname, char *newname) {
     memcpy(message + 13, &newname_copy, sizeof(char*));
     memcpy(message + 21, &newname_size, sizeof(int));
     memcpy(message + 25, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(oldname_copy);
     free(newname_copy);
     if (res == -1) {
@@ -322,7 +322,7 @@ int ReadLink(char *pathname, char *buf, int len) {
     memcpy(message + 13, &buf, sizeof(char*));
     memcpy(message + 21, &len, sizeof(int));
     memcpy(message + 25, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "Readlink(): Send error!\n");
@@ -360,7 +360,7 @@ int MkDir(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "MkDir(): Send error!\n");
@@ -398,7 +398,7 @@ int RmDir(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "RmDir(): Send error!\n");
@@ -435,7 +435,7 @@ int ChDir(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "ChDir(): Send error!\n");
@@ -472,7 +472,7 @@ int Stat(char *pathname, struct Stat *statbuf) {
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &statbuf, sizeof(struct Stat*));
     memcpy(message + 21, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "Stat(): Send error!\n");
@@ -490,7 +490,7 @@ int Sync(void) {
     */
     char message[MESSAGE_SIZE];
     message[0] = (char) CALL_SYNC;
-    if (Send(message, -YFS_PID) == -1) {
+    if (Send(message, -FILE_SERVER) == -1) {
         TracePrintf(1, "Sync(): Send error!\n");
         return ERROR;
     }
@@ -506,7 +506,7 @@ int Shutdown(void) {
     */
     char message[MESSAGE_SIZE];
     message[0] = (char) CALL_SHUTDOWN;
-    if (Send(message, -YFS_PID) == -1) {
+    if (Send(message, -FILE_SERVER) == -1) {
         TracePrintf(1, "Sync(): Send error!\n");
         return ERROR;
     }
@@ -547,7 +547,7 @@ int Seek(int fd, int offset, int whence) {
             message[0] = (char)CALL_SEEK;
             memcpy(message + 1,(void*)(&open_files[fd].inum), sizeof(short));
 
-            if (Send(message, -YFS_PID) == -1) {
+            if (Send(message, -FILE_SERVER) == -1) {
                 TracePrintf(1, "Seek(): Send error!\n");
                 return ERROR;
             }
@@ -595,7 +595,7 @@ int Link(char *oldname, char *newname) {
     memcpy(message + 13, &newname_copy, sizeof(char*));
     memcpy(message + 21, &newname_size, sizeof(int));
     memcpy(message + 25, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(oldname_copy);
     free(newname_copy);
     if (res == -1) {
@@ -629,7 +629,7 @@ int Unlink(char *pathname) {
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
-    int res = Send(message, -YFS_PID);
+    int res = Send(message, -FILE_SERVER);
     free(pathname_copy);
     if (res == -1) {
         TracePrintf(1, "Unlink(): Send error!\n");

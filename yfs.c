@@ -4,7 +4,84 @@
 
 int MessageHandler(char *msg, int pid)
 {
-    return 0;
+    int code = (unsigned char)msg[0];
+    int res = 0;
+    switch (code)
+    {
+    case CALL_OPEN:
+        /* code */
+        break;
+    case CALL_CREATE:
+        /* code */
+        break;
+    case CALL_READ:
+        short   inum = *(short*)(msg+1);
+        int     pos = *(int*)(msg+3);
+        void    *buf = *(void**)(msg + 7);
+        int     read_len = *(int*)(msg+15);
+
+        void* tmp_buf = malloc(read_len);
+        res = ReadHandler(inum, pos, tmp_buf, read_len);
+        if (res == -1) {
+            TracePrintf(1, "ReadHandler() error!\n");
+        }
+        else {
+            CopyTo(pid, buf, tmp_buf, res);
+        }
+        free(tmp_buf);
+        break;
+    case CALL_WRITE:
+        short   inum = *(short*)(msg+1);
+        int     pos = *(int*)(msg+3);
+        void    *buf = *(void**)(msg + 7);
+        int     write_len = *(int*)(msg+15);
+
+        void* tmp_buf = malloc(write_len);
+        CopyFrom(pid, tmp_buf, buf, write_len);
+        res = WriteHandler(inum, pos, tmp_buf, read_len);
+        if (res == -1) {
+            TracePrintf(1, "ReadHandler() error!\n");
+        }
+        free(tmp_buf);
+        break;
+    case CALL_SEEK:
+        /* code */
+        break;
+    case CALL_LINK:
+        /* code */
+        break;
+    case CALL_UNLINK:
+        /* code */
+        break;
+    case CALL_SYMLINK:
+        /* code */
+        break;
+    case CALL_READLINK:
+        /* code */
+        break;
+    case CALL_MKDIR:
+        /* code */
+        break;
+    case CALL_RMDIR:
+        /* code */
+        break;
+    case CALL_CHDIR:
+        /* code */
+        break;
+    case CALL_STAT:
+        /* code */
+        break;
+    case CALL_SYNC:
+        /* code */
+        break;
+    case CALL_SHUTDOWN:
+        /* code */
+        break;
+    default:
+        TracePrintf(1, "MessageHandler() Unrecognized code!\n");
+        break;
+    }
+    return res;
 }
 
 int ReadHandler(short inum, int position, void *buf, int size)
