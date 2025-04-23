@@ -100,9 +100,9 @@ void init_inode_block(){
     memset(block_bitmap, 0, block_bitmap_size);
     memset(inode_bitmap, 0, inode_bitmap_size);
     // boot block
-    // set_bitmap_used(block_bitmap,0); TODO
+    set_bitmap_used(block_bitmap,0,block_bitmap_size); //TODO
     // fs_header
-    //set_bitmap_used(inode_bitmap,0); TODO
+    set_bitmap_used(inode_bitmap,0,inode_bitmap_size); //TODO
 
 
     int i;

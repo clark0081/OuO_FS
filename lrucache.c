@@ -248,6 +248,7 @@ void evict_inode(){
         // remove from hash table
         // write back
         int inodeNum = inode_evict->inodeNum;
+        int blockNum = INODE_TO_BLOCK(inodeNum);
         int offset = INODE_IN_BLOCK_ADDR(inodeNum);
         BLOCK_INFO* tmp_block  = get_block(blockNum); // TODO
         memcpy(tmp_block->data + offset, inode_evict->val, sizeof(struct inode));

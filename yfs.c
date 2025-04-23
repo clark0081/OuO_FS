@@ -430,6 +430,11 @@ int SyncHandler()
 int ShutdownHandler()
 {
     // SyncHandler()
+    // This request performs an orderly shutdown of the file server process. 
+    // All dirty cached inodes and disk blocks should be written back to the disk 
+    // (as in a Sync request), and the file server should then call Exit to complete its shutdown. 
+    // As part of a Shutdown request, the server should print an informative message indicating that it is shutting down. 
+    // This request always returns the value 0.
 
     return 0;
 }
