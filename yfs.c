@@ -20,11 +20,15 @@ short findInumInDir(char * filename, short dir) {
         }
 
         if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
+            // INODE_INFO* next_inode_info = get_inode(entry.inum);
+            // if (next_inode_info->val->type != INODE_DIRECTORY && next_inode_info->val->type != INODE_SYMLINK) {
+            //     continue;
+            // }
             TracePrintf(1, "findInumInDir() find %s with inum %d in directory %d\n", filename, entry.inum, dir);
             return entry.inum;
         }
     }
-    return ERROR;
+    return 0;
 }
 
 short resolvePath(char *pathname, short cur_dir_in) {
@@ -126,6 +130,63 @@ short resolvePath(char *pathname, short cur_dir_in) {
 
 }
 
+int getParentInum(char *pathname, short cur_dir_in) {
+    // find the last "/"
+    int parent_len = 0;
+    for (int i = strlen(pathname) - 1; i >= 0; i--) {
+        if (pathname[i] == '/') {
+            parent_len = i+1;
+            break;
+        }
+    }
+    /*
+        aa/bb/cc
+             |
+    */
+
+    // root
+    if (parent_len == 1 && pathname[0] == '/') {
+        return ROOTINODE;
+    }
+
+    // non root
+    /*
+        aa/bb/cc            aa/bb/cc
+             |                  |
+        p_len = 6           p_len = 5
+        
+        we don't want to copy the last slash
+    */
+    parent_len -= 1;
+    char* parent_pathname_copy = (char*)malloc(parent_len + 1); // add "\0"
+    memcpy(parent_pathname_copy, pathname, parent_len);
+    parent_pathname_copy[parent_len] = '\0';
+
+    short parent_inum = resolvePath(parent_pathname_copy, cur_dir_in);
+    free(parent_pathname_copy);
+
+    if(parent_inum == -1){
+        TracePrintf(1, "getParentInum() cannot get parent inum for %s\n",pathname);
+        return ERROR;
+    }
+    return parent_inum;
+
+
+
+}
+char* getFilename(char* pathname) {
+    for(int i = strlen(pathname) - 1; i >= 0; i--){
+        if(pathname[i] == '/'){
+            return pathname + i + 1;
+        }
+    }
+    return pathname;
+}
+
+short createFile(char *pathname, short parent_inum, int file_type) {
+    return 0;
+}
+
 int MessageHandler(char *msg, int pid)
 {
     int code = (unsigned char)msg[0];
@@ -217,33 +278,61 @@ int MessageHandler(char *msg, int pid)
     return res;
 }
 
+int OpenHandler(char *pathname, short cur_dir_idx)
+{
+    return resolvePath(pathname,cur_dir_idx);
+}
+
+int CreateHandler(char *pathname, short cur_dir_idx)
+{
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"CreateHandler() cannot find parent inode\n");
+        return ERROR;
+    }
+    char* filename = getFilename(pathname);
+
+    return 0;
+}
+
 int ReadHandler(short inum, int position, void *buf, int size)
 {
-    INODE_INFO *cur_inode_info = get_inode(inum);
-    // TODO: handle error
+    INODE_INFO *cur_inode_info = get_use_inode(inum);
+    if (cur_inode_info == NULL) {
+        TracePrintf(1,"ReadHandler() cannot find inode\n");
+        return ERROR;
+    }
 
     int total_read_count = 0;
     int req_left = 0, file_left = 0, block_left = 0, read_count = 0;
+    int block_num = 0, block_offset = 0;
     struct inode* cur_inode = cur_inode_info->val;
 
     while (
         total_read_count < size 
         && position + total_read_count < cur_inode->size
     ) {
-        int block_num = (position + total_read_count) / BLOCKSIZE;
-        int block_offset = (position + total_read_count) % BLOCKSIZE;
+        block_num = (position + total_read_count) / BLOCKSIZE;
+        block_offset = (position + total_read_count) % BLOCKSIZE;
         char* block_content = NULL;
         if (block_num < NUM_DIRECT) {
             // direct block
             // get block node using inode->direct[blocknum]
-            BLOCK_INFO * binfo = get_block(cur_inode->direct[block_num]);
+            BLOCK_INFO *binfo = get_block(cur_inode->direct[block_num]);
             block_content = &binfo->data[block_offset];
         }
         else {
             // indirect
-            if (block_num > NUM_DIRECT) { return ERROR;} 
+            if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
             // get block node using inode->indirect
-            BLOCK_INFO * binfo = get_block(cur_inode->indirect);
+            BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
+            // TODO: handle error
+
+            int bnum = (int*)(indirectbinfo->data)[block_num-NUM_DIRECT];
+
+            BLOCK_INFO *binfo = get_block(bnum);
+            // TODO: handle error
+            
             block_content = &binfo->data[block_offset];
         }
         // get block_contnet of block's content using block_offset
@@ -260,84 +349,70 @@ int ReadHandler(short inum, int position, void *buf, int size)
         total_read_count += read_count;
     }
     return total_read_count;
-    /*
-        - get the index node using inum
-        int total_read_count = 0;
-        while (
-            read_count < size 
-            && position + total_read_count < inode->size) {
-            block_num = (position + total_read_count) / BLOCKSIZE;
-            block_offset = (position + total_read_count) % BLOCKSIZE;
-            if (block_num < NUM_DIRECT) {
-                // direct block
-                get block node using inode->direct[blocknum]
-            }
-            else {
-                // indirect
-                if (blocknum > NUMDIRECT) return ERROR
-                get block node using inode->indirect
-            }
-            get block_contnet of block's content using block_offset
-
-
-            req_left = size - total_read_count;
-            file_left = inode->size - (postion + total_read_count);
-            block_left = BLOCKSIZE - block_offset; 
-            
-            read_count = req_left;
-            if (read_count > file_left) read_count = file_left;
-            if (read_count > block_left) read_count = block_left;
-
-
-            memcpy(buf + total_read_count, block_content, read_count);
-            total_read_count += read_count;
-        }
-        return total_read_count;
-    */
 }
 
 int WriteHandler(short inum, int position, void *buf, int size)
 {
-    /*
-        - get the index node using inum
+    INODE_INFO *cur_inode_info = get_use_inode(inum);
+    if (cur_inode_info == NULL) {
+        TracePrintf(1,"WriteHandler() cannot find inode\n");
+        return ERROR;
+    }
 
-        if (position + size > BLOCKSIZE * (inode->size/ BLOCKSIZE + 1)) {
-            need to assign new block 
+    cur_inode_info->isDirty = 1;
+
+    struct inode* cur_inode = cur_inode_info->val;
+    if (position + size > BLOCKSIZE * (cur_inode->size/ BLOCKSIZE + 1)) {
+        // need to assign new block 
+        // TODO
+    }
+
+    int total_write_count = 0;
+    int req_left = 0, file_left = 0, block_left = 0, write_count = 0;
+    int block_num = 0, block_offset = 0;
+
+    while (
+        total_write_count < size 
+        && position + total_write_count < cur_inode->size
+    ) {
+        block_num = (position + total_write_count) / BLOCKSIZE;
+        block_offset = (position + total_write_count) % BLOCKSIZE;
+        char* block_content = NULL;
+        if (block_num < NUM_DIRECT) {
+            // direct block
+            // get block node using inode->direct[blocknum]
+            BLOCK_INFO *binfo = get_block(cur_inode->direct[block_num]);
+            // TODO: handle error
+
+            binfo->isDirty = 1;
+            block_content = &binfo->data[block_offset];
+        }
+        else {
+            // indirect
+            if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
+            // get block node using inode->indirect
+            BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
+            // TODO: handle error
+
+            int bnum = (int*)(indirectbinfo->data)[block_num - NUM_DIRECT];
+
+            BLOCK_INFO *binfo = get_block(bnum);
+            // TODO: handle error
+
+            binfo->isDirty = 1;
+            block_content = &binfo->data[block_offset];
         }
 
-        int total_write_count = 0;
-        while (
-            write_count < size 
-            && position + total_write_count < inode->size) {
-            block_num = (position + total_write_count) / BLOCKSIZE;
-            block_offset = (position + total_write_count) % BLOCKSIZE;
-            if (block_num < NUM_DIRECT) {
-                // direct block
-                get block node using inode->direct[blocknum]
-            }
-            else {
-                // indirect
-                if (blocknum > NUMDIRECT) return ERROR
-                get block node using inode->indirect
-            }
-            get block_contnet of block's content using block_offset
-            set this block to dirty
+        req_left = size - total_write_count;
+        block_left = BLOCKSIZE - block_offset; 
             
-            req_left = size - total_write_count;
-            file_left = inode->size - (postion + total_write_count);
-            block_left = BLOCKSIZE - block_offset; 
-            
-            write_count = req_left;
-            if (write_count > file_left) write_count = file_left;
-            if (write_count > block_left) write_count = block_left;
+        write_count = req_left;
+        if (write_count > block_left) write_count = block_left;
 
-
-            memcpy(block_content, buf + total_write_count, write_count);
-            total_write_count += read_count;
-        }
-        return total_write_count;
-    */
-    return 0;
+        memcpy(block_content, buf + total_write_count, write_count);
+        total_write_count += write_count;
+    }
+    return total_write_count;
 }
 
 int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
