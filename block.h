@@ -87,7 +87,8 @@ BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE];
 // init hashTable and bitMap
 void init_inode_block();
 // get inode from disk
-struct inode_info* get_inode(int);
+struct inode_info* get_use_inode(int);
+struct inode_info* get_new_inode();
 struct block_info* get_block(int);
 
 void insert_inode_hashTable(int , INODE_INFO* );

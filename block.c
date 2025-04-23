@@ -10,7 +10,7 @@
 #include "lrucache.h"
 
 
-struct inode_info* get_inode(int inodeNum){
+struct inode_info* get_use_inode(int inodeNum){
     INODE_INFO* result  = get_inode_lru(inodeNum);
     if(result->inodeNum == -1){
         INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
@@ -25,12 +25,38 @@ struct inode_info* get_inode(int inodeNum){
         res->val = myInode;
         res->isDirty = 0;
         res->inodeNum = inodeNum;
+        if(res->val->type == INODE_FREE){
+            free(res->val);
+            free(res);
+            return NULL;
+        }
         set_inode_lru(inodeNum, res);
         return get_inode_lru(inodeNum);
     }
     else{
         return result;
     }
+}
+struct inode_info* get_new_inode(){
+    int inodeNum = find_free(inode_bitmap, NUM_INODES);
+    if(inodeNum == -1){
+        return NULL;
+    }
+    INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
+    int blockNum = INODE_TO_BLOCK(inodeNum);
+    BLOCK_INFO* tempBlock = get_block(blockNum);
+    int offset = INODE_IN_BLOCK_ADDR(inodeNum);
+    //struct inode* myInode = (struct inode*)(tempBlock->data + offset);
+    struct inode* myInode = malloc(sizeof(struct inode));
+    memcpy(myInode, tempBlock->data + offset, sizeof(struct inode));
+    res->next = NULL;
+    res->prev = NULL;
+    res->val = myInode;
+    res->isDirty = 0;
+    res->inodeNum = inodeNum;
+    set_bitmap_used(inode_bitmap, inodeNum, NUM_INODES);
+    set_inode_lru(inodeNum, res);
+    return get_inode_lru(inodeNum);
 }
 
 BLOCK_INFO* get_block(int blockNum) {
@@ -100,25 +126,25 @@ void init_inode_block(){
     memset(block_bitmap, 0, block_bitmap_size);
     memset(inode_bitmap, 0, inode_bitmap_size);
     // boot block
-    set_bitmap_used(block_bitmap,0,block_bitmap_size); //TODO
+    set_bitmap_used(block_bitmap,0,NUM_BLOCKS); //TODO
     // fs_header
-    set_bitmap_used(inode_bitmap,0,inode_bitmap_size); //TODO
+    set_bitmap_used(inode_bitmap,0,NUM_INODES); //TODO
 
 
     int i;
     // set block list for inodes used
     for(i = 1; i < (NUM_INODES * INODESIZE) / BLOCKSIZE ; i++){
-        set_bitmap_used(block_bitmap,i,block_bitmap_size);
+        set_bitmap_used(block_bitmap,i,NUM_BLOCKS);
     }
     // check all inodes
     for(i = 1; i < NUM_INODES; i++){
-	    struct inode* temp = get_inode(i)->val;
+	    struct inode* temp = get_use_inode(i)->val;
 	    if(temp->type == INODE_FREE){
-            set_bitmap_used(inode_bitmap,i,inode_bitmap_size);
+            set_bitmap_used(inode_bitmap,i,NUM_INODES);
 	        int j = 0;
 	        // direct blocks
 	        while(j < NUM_DIRECT && j * BLOCKSIZE < temp->size){
-		        set_bitmap_used(block_bitmap,temp->direct[j],block_bitmap_size);
+		        set_bitmap_used(block_bitmap,temp->direct[j],NUM_BLOCKS);
 		        j++;		    
 	        }
 
@@ -126,7 +152,7 @@ void init_inode_block(){
 		        int* indirect_block = (int*)(get_block(temp->indirect)->data);
 		        while(j * BLOCKSIZE < temp->size){
                     int indirect_blockNum = indirect_block[j - NUM_DIRECT];
-		            set_bitmap_used(block_bitmap,indirect_blockNum,block_bitmap_size);
+		            set_bitmap_used(block_bitmap,indirect_blockNum,NUM_BLOCKS);
 		            j++;
 		        }
 	        }
