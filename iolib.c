@@ -564,7 +564,7 @@ int Seek(int fd, int offset, int whence) {
         return ERROR;
     }
     open_files[fd].position = new_position;
-    return 0;
+    return new_position;
 }
 
 int Link(char *oldname, char *newname) {

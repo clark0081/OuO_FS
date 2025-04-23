@@ -48,6 +48,11 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_SEEK:
         /* code */
+        short   inum = *(short*)(msg+1);
+        res = SeekHandler(inum);
+        if (res == -1) {
+            TracePrintf(1, "SeekHandler() error!\n");
+        }
         break;
     case CALL_LINK:
         /* code */
@@ -75,6 +80,10 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_SYNC:
         /* code */
+        res = SyncHandler();
+        if (res == -1) {
+            TracePrintf(1, "SyncHandler() error!\n");
+        }
         break;
     case CALL_SHUTDOWN:
         /* code */
@@ -253,7 +262,7 @@ int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx)
 int SyncHandler()
 {   
     /* write back all inode/block cache */
-    return 0;
+    return sync();
 }
 
 int ShutdownHandler()
@@ -261,6 +270,15 @@ int ShutdownHandler()
     // SyncHandler()
 
     return 0;
+}
+
+int SeekHandler(short inodeNum){
+    INODE_INFO* info = get_inode(inodeNum);
+    if(info->inodeNum == -1){
+	    TracePrintf(0, "in SeekHandler...inode number is 0\n");
+	    return ERROR;
+    }
+    return info->val->size;
 }
 
 int main(int argc, char** argv) {
@@ -292,6 +310,7 @@ int main(int argc, char** argv) {
     }
     return 0;
 }
+
 
 
 
