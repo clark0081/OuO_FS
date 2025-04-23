@@ -277,59 +277,68 @@ void clear_inode_block_hashTable() {
     }
 }
 
+// error: -1
+// success: 0
+// What is extend fail?
+int extend(INODE_INFO* info, int newsize){
+    struct inode* inode = info->val;
 
-int extend(struct inode_info* info, int newsize){
-    struct inode* file_inode = info->inode_val;
-    info->dirty = 1;
-    if(newsize < file_inode->size){
-	return 0;
+    if(newsize < inode->size){
+        TracePrintf(1, "in extend(): newsize < inode->size\n");
+        return -1;
     }
+    info->isDirty = 1;
 
-    info->dirty = 1;
-    // round filesize up to the next blocksize
-    int current = ((file_inode->size + (BLOCKSIZE-1)) / BLOCKSIZE) * BLOCKSIZE;
-    // fill up direct blocks first
-    if(current < BLOCKSIZE * NUM_DIRECT){
-        while(current < BLOCKSIZE * NUM_DIRECT && current < newsize){
-	    // assign a new block in direct
-	    int free_block = get_free_block();
-	    if(free_block == ERROR) {
-		return ERROR;
-	    }
-
-	    struct block_info* info = read_block_from_disk(free_block);
-	    info->dirty = 1;
-	    memset(info->data, '\0', BLOCKSIZE);
-
-	    file_inode->direct[current / BLOCKSIZE] = free_block;
-	    current += BLOCKSIZE;
+    // count size, no need to -1
+    // cur_block_max: if current size is 600 , block size is 512, then cur_block_max = 1024
+    int cur_block_max = ((inode->size + (BLOCKSIZE-1)) / BLOCKSIZE) * BLOCKSIZE;
+    // assign direct blocks
+    if(cur_block_max < BLOCKSIZE * NUM_DIRECT){
+        while(cur_block_max < BLOCKSIZE * NUM_DIRECT && cur_block_max < newsize){
+	        int free_block = find_free(block_bitmap, NUM_BLOCKS);
+	        if(free_block == -1) {
+                TracePrintf(1, "in extend(): no free blocks\n");
+		        return -1;
+	        }
+            set_bitmap_used(block_bitmap, free_block, NUM_BLOCKS);
+	        BLOCK_INFO* new_block = get_block(free_block);
+            new_block->isDirty = 1;
+	        memset(new_block->data, '\0', BLOCKSIZE);
+            // 0-indexed
+	        inode->direct[cur_block_max / BLOCKSIZE] = free_block;
+	        cur_block_max += BLOCKSIZE;
         }
     }
     
-    // If this is the first time growing into indirect size then allocate indirect block
-    if(current < newsize && current == BLOCKSIZE * NUM_DIRECT){
-        int new_indirect = get_free_block();
-	if(new_indirect == ERROR)
-	    return ERROR;
-	file_inode->indirect = new_indirect;
+    // allocate indirect block
+    // and ensure allocate only one time
+    if(cur_block_max < newsize && cur_block_max == BLOCKSIZE * NUM_DIRECT){
+        int indirect = find_free(block_bitmap, NUM_BLOCKS);
+	    if(indirect == -1){
+	        TracePrintf(1, "in extend(): no free blocks to assign indirect\n");
+		    return -1;
+        }
+        set_bitmap_used(block_bitmap, indirect, NUM_BLOCKS);
+	    inode->indirect = indirect;
     }
 
-    // if direct blocks not enough, then access indirect blocks
-    if(current < newsize){
-	int big_block_num = file_inode->indirect;
-	struct block_info * block_indirect = read_block_from_disk(big_block_num);
-	block_indirect->dirty = 1;
-	int * int_array = (int*)(block_indirect->data);
-	
-        while(current < BLOCKSIZE * (NUM_DIRECT + BLOCKSIZE / sizeof(int)) && current < newsize ) {
-	    int free_block = get_free_block();
-	    if(free_block == ERROR) {
-		return ERROR;
+    // then allocate new indirect block
+    if(cur_block_max < newsize){
+	    BLOCK_INFO* block_indirect = get_block(inode->indirect);
+	    block_indirect->isDirty = 1;
+	    int* content = (int*)(block_indirect->data);
+        // BLOCKSIZE / sizeof(int) how many blocks in a indirect block
+        while(cur_block_max < BLOCKSIZE * (NUM_DIRECT + BLOCKSIZE / sizeof(int)) && cur_block_max < newsize ) {
+	        int free_block = find_free(block_bitmap, NUM_BLOCKS);
+            if(free_block == -1) {
+                TracePrintf(1, "in extend(): no free blocks for indirect block\n");
+		        return -1;
+	        }
+	        content[cur_block_max / BLOCKSIZE - NUM_DIRECT] = free_block;
+            set_bitmap_used(block_bitmap, free_block, NUM_BLOCKS);
+            cur_block_max += BLOCKSIZE;
 	    }
-	    int_array[current / BLOCKSIZE - NUM_DIRECT] = free_block;
-	    current += BLOCKSIZE;
-	}
     }
-    file_inode->size = newsize;
+    inode->size = newsize;
     return 0;
 }

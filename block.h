@@ -98,6 +98,7 @@ BLOCK_INFO* search_block_hashTable(int);
 void delete_inode_hashTable(int);
 void delete_block_hashTable(int);
 void clear_inode_block_hashTable();
+int extend(INODE_INFO* , int);
 //-------------------------------------------------------------
 //LRU
 
