@@ -183,8 +183,99 @@ char* getFilename(char* pathname) {
     return pathname;
 }
 
-short createFile(char *pathname, short parent_inum, int file_type) {
-    return 0;
+struct dir_entry createEntry(short inum, char *filename) {
+    struct dir_entry entry;
+    entry.inum = inum;
+    memset(&entry.name, '\0', DIRNAMELEN);
+    int filename_len = strlen(filename);
+    if(filename_len > DIRNAMELEN) { filename_len = DIRNAMELEN; } 
+    memcpy(&entry.name, filename, filename_len);
+    
+    return entry;
+}
+
+int addEntry(short inum, struct dir_entry new_entry) {
+    // get the prent inode
+    INODE_INFO *inode_info = get_use_inode(inum);
+    if (inode_info == NULL) {
+        TracePrintf(1, "addEntry() cannot get inode!\n");
+        return ERROR;
+    }
+    if (inode_info->val->type != INODE_DIRECTORY) {
+        TracePrintf(1, "addEntry() the given inode is not a directory!\n");
+        return ERROR;
+    }
+
+    // get the entry inode
+    INODE_INFO *entry_inode_info = get_use_inode(new_entry.inum);
+    if (inode_info == NULL) {
+        TracePrintf(1, "addEntry() cannot get inode of new entry!\n");
+        return ERROR;
+    }
+
+    int size = inode_info->val->size;
+    int cur_pos = 0;
+    struct dir_entry cur_entry;
+
+    // while loop
+    while (cur_pos < size) {
+        int res = ReadHandler(inum, cur_pos, &cur_entry, sizeof(struct dir_entry));
+        if (res == -1) {
+            TracePrintf(1, "addEntry() ReadHandler error!\n");
+            return ERROR;
+        }
+        if (cur_entry.inum == 0) { // TODO sync with rmdir
+            break;
+        }
+        cur_pos += sizeof(struct dir_entry);
+    }
+
+    int res = WriteHandler(inum, cur_pos, &new_entry, sizeof(struct dir_entry));
+    if (res == -1) {
+        TracePrintf(1, "addEntry() WriteHandler error\n");
+        return ERROR;
+    }
+
+    inode_info->isDirty = 1;
+    entry_inode_info->val->nlink++;
+    entry_inode_info->isDirty = 1;
+
+    return res;
+}
+
+short createFile(char *filename, short parent_inum, int file_type) {
+    short exist_inum = findInumInDir(filename, parent_inum);
+    if (exist_inum == -1) {
+        TracePrintf(1, "createFile() find filename error!\n");
+        return ERROR;
+    }
+    else if (exist_inum > 0) {
+        TracePrintf(1, "createFile() filename already exist\n");
+        return ERROR;
+    }
+
+    INODE_INFO *new_inode_info = get_new_inode();
+    if (new_inode_info == NULL) {
+        TracePrintf(1, "createFile() cannot create new inode!\n");
+        return ERROR;
+    }
+
+    struct dir_entry new_entry = createEntry(new_inode_info->inodeNum, filename);
+
+    // TODO add entry
+    if (addEntry(parent_inum, new_entry) == -1) {
+        set_bitmap_free(inode_bitmap, new_inode_info->inodeNum,  NUM_INODES);
+        return ERROR;
+    }
+    new_inode_info->val->type = file_type;
+    new_inode_info->val->nlink = 0;
+    new_inode_info->val->size = 0;
+    new_inode_info->val->reuse++;
+    new_inode_info->isDirty = 1;
+    BLOCK_INFO* binfo = get_block(INODE_TO_BLOCK(new_inode_info->inodeNum));
+    binfo->isDirty = 1;
+
+    return new_inode_info->inodeNum; // inum
 }
 
 int MessageHandler(char *msg, int pid)
@@ -328,7 +419,8 @@ int ReadHandler(short inum, int position, void *buf, int size)
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
             // TODO: handle error
 
-            int bnum = (int*)(indirectbinfo->data)[block_num-NUM_DIRECT];
+            int *indirect_blocks = (int *)indirectbinfo->data;
+            int bnum = indirect_blocks[block_num - NUM_DIRECT];
 
             BLOCK_INFO *binfo = get_block(bnum);
             // TODO: handle error
@@ -345,7 +437,7 @@ int ReadHandler(short inum, int position, void *buf, int size)
         if (read_count > file_left) read_count = file_left;
         if (read_count > block_left) read_count = block_left;
 
-        memcpy(buf + total_read_count, block_content, read_count);
+        memcpy((char*)buf + total_read_count, block_content, read_count);
         total_read_count += read_count;
     }
     return total_read_count;
@@ -364,11 +456,11 @@ int WriteHandler(short inum, int position, void *buf, int size)
     struct inode* cur_inode = cur_inode_info->val;
     if (position + size > BLOCKSIZE * (cur_inode->size/ BLOCKSIZE + 1)) {
         // need to assign new block 
-        // TODO
+        extend(cur_inode_info, position + size);
     }
 
     int total_write_count = 0;
-    int req_left = 0, file_left = 0, block_left = 0, write_count = 0;
+    int req_left = 0, block_left = 0, write_count = 0;
     int block_num = 0, block_offset = 0;
 
     while (
@@ -393,8 +485,9 @@ int WriteHandler(short inum, int position, void *buf, int size)
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
             // TODO: handle error
-
-            int bnum = (int*)(indirectbinfo->data)[block_num - NUM_DIRECT];
+            
+            int *indirect_blocks = (int *)indirectbinfo->data;
+            int bnum = indirect_blocks[block_num - NUM_DIRECT];
 
             BLOCK_INFO *binfo = get_block(bnum);
             // TODO: handle error
@@ -409,7 +502,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
         write_count = req_left;
         if (write_count > block_left) write_count = block_left;
 
-        memcpy(block_content, buf + total_write_count, write_count);
+        memcpy(block_content, (char*)buf + total_write_count, write_count);
         total_write_count += write_count;
     }
     return total_write_count;
