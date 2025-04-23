@@ -281,6 +281,23 @@ void clear_inode_block_hashTable() {
 // success: 0
 // What is extend fail?
 int extend(INODE_INFO* info, int newsize){
+
+    /*
+    int is_free(unsigned char* bitmap, int num, int len) {
+        if(num < len)
+            return !(bitmap[num / 8] & (1 << (num % 8)));
+        return -1;
+    }
+    */
+    int inode_blocks = (NUM_INODES  + (BLOCKSIZE / INODESIZE) - 1) / (BLOCKSIZE / INODESIZE);
+    int valid_block = 0;
+    // boot block + inode block
+    for(int i = inode_blocks + 1; i < NUM_BLOCKS; i++){
+        if(is_free(block_bitmap, i, NUM_BLOCKS) == 1){
+            valid_block++;
+        }
+    }
+
     struct inode* inode = info->val;
 
     if(newsize < inode->size){
@@ -292,6 +309,19 @@ int extend(INODE_INFO* info, int newsize){
     // count size, no need to -1
     // cur_block_max: if current size is 600 , block size is 512, then cur_block_max = 1024
     int cur_block_max = ((inode->size + (BLOCKSIZE-1)) / BLOCKSIZE) * BLOCKSIZE;
+    int extra_block = 0;
+    int used_block = (inode->size + (BLOCKSIZE-1)) / BLOCKSIZE;
+    int new_block = (newsize + (BLOCKSIZE-1)) / BLOCKSIZE;
+
+    if (used_block <= NUM_DIRECT && new_block > NUM_DIRECT && cur_block_max < BLOCKSIZE * NUM_DIRECT) {
+        extra_block = 1; 
+    }
+    int need_block = new_block - used_block + extra_block;
+    if(need_block > valid_block){
+        TracePrintf(1, "in extend(): not enough free blocks\n");
+        return -1;
+    }
+
     // assign direct blocks
     if(cur_block_max < BLOCKSIZE * NUM_DIRECT){
         while(cur_block_max < BLOCKSIZE * NUM_DIRECT && cur_block_max < newsize){
