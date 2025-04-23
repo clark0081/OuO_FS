@@ -276,3 +276,60 @@ void clear_inode_block_hashTable() {
         block_hashtable[i] = NULL;
     }
 }
+
+
+int extend(struct inode_info* info, int newsize){
+    struct inode* file_inode = info->inode_val;
+    info->dirty = 1;
+    if(newsize < file_inode->size){
+	return 0;
+    }
+
+    info->dirty = 1;
+    // round filesize up to the next blocksize
+    int current = ((file_inode->size + (BLOCKSIZE-1)) / BLOCKSIZE) * BLOCKSIZE;
+    // fill up direct blocks first
+    if(current < BLOCKSIZE * NUM_DIRECT){
+        while(current < BLOCKSIZE * NUM_DIRECT && current < newsize){
+	    // assign a new block in direct
+	    int free_block = get_free_block();
+	    if(free_block == ERROR) {
+		return ERROR;
+	    }
+
+	    struct block_info* info = read_block_from_disk(free_block);
+	    info->dirty = 1;
+	    memset(info->data, '\0', BLOCKSIZE);
+
+	    file_inode->direct[current / BLOCKSIZE] = free_block;
+	    current += BLOCKSIZE;
+        }
+    }
+    
+    // If this is the first time growing into indirect size then allocate indirect block
+    if(current < newsize && current == BLOCKSIZE * NUM_DIRECT){
+        int new_indirect = get_free_block();
+	if(new_indirect == ERROR)
+	    return ERROR;
+	file_inode->indirect = new_indirect;
+    }
+
+    // if direct blocks not enough, then access indirect blocks
+    if(current < newsize){
+	int big_block_num = file_inode->indirect;
+	struct block_info * block_indirect = read_block_from_disk(big_block_num);
+	block_indirect->dirty = 1;
+	int * int_array = (int*)(block_indirect->data);
+	
+        while(current < BLOCKSIZE * (NUM_DIRECT + BLOCKSIZE / sizeof(int)) && current < newsize ) {
+	    int free_block = get_free_block();
+	    if(free_block == ERROR) {
+		return ERROR;
+	    }
+	    int_array[current / BLOCKSIZE - NUM_DIRECT] = free_block;
+	    current += BLOCKSIZE;
+	}
+    }
+    file_inode->size = newsize;
+    return 0;
+}

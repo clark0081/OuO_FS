@@ -260,36 +260,3 @@ void evict_inode(){
         inode_evict = NULL;
     }
 }
-
-
-if(current_blockcache_number >= BLOCK_CACHESIZE) {
-    int to_be_removed_key = block_front->block_number;
-    //Here should be another method sync to write inode back to the disk.
-    sync();
-    if(block_front->dirty == 1) {
-       int sig = WriteSector(block_front->block_number, (void*)(block_front->data));
-       if(sig == 0) {
-           printf("An error is generated when doing WriteSector.\n");
-       }
-    }
-    dequeue_block();
-    remove_block_from_hashtable(to_be_removed_key);
-    //Decrement the current block cache number by 1.
-    current_blockcache_number--;
- }
-if(get_block(block_num) == NULL) {
-    // printf("Key not found\n");
-    //Determines whether a key needs to be removed.
-    evict_block();
-    enqueue_block(input_block);
-    put_block_to_hashtable(block_num, input_block);
-    current_blockcache_number++;
-    return;
- }else{
-
-    remove_queue_block(get_block(block_num)->block_data);
-    enqueue_block(input_block);
-    put_block_to_hashtable(block_num, input_block);
-
-    return;
- }
