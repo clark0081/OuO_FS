@@ -7,10 +7,15 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <comp421/yalnix.h>
-#include <comp421/hardware.h>
-#include <comp421/filesystem.h>
-#include <comp421/iolib.h>
+// #include <comp421/yalnix.h>
+// #include <comp421/hardware.h>
+// #include <comp421/filesystem.h>
+// #include <comp421/iolib.h>
+#include "yalnix.h"
+#include "hardware.h"
+#include "filesystem.h"
+#include "iolib.h"
+
 #include "block.h"
 
 
@@ -42,7 +47,7 @@ void clear_inode_cache();
 BLOCK_INFO* get_block_lru(int);
 void set_block_lru(int , BLOCK_INFO*);
    
-BLOCK_INFO* get_inode_lru(int);
+INODE_INFO* get_inode_lru(int);
 void set_inode_lru(int , INODE_INFO*);
 void evict_block();
 void evict_inode();

@@ -4,10 +4,10 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <comp421/yalnix.h>
-#include <comp421/hardware.h>
-#include <comp421/filesystem.h>
-#include <comp421/iolib.h>
+// #include <comp421/yalnix.h>
+// #include <comp421/hardware.h>
+// #include <comp421/filesystem.h>
+// #include <comp421/iolib.h>
 #include "block.h"
 #include "lrucache.h"
 
@@ -191,7 +191,7 @@ void set_block_lru(int blockNum, BLOCK_INFO* block){
     }
 }
    
-BLOCK_INFO* get_inode_lru(int inodeNum){
+INODE_INFO* get_inode_lru(int inodeNum){
     INODE_WRAP* res = search_inode_hashTable(inodeNum);
     if(res == NULL) {
         return inode_head;
@@ -249,7 +249,7 @@ void evict_inode(){
         // write back
         int inodeNum = inode_evict->inodeNum;
         int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-        BLOCK_INFO* tmp_block  = get_block(blockNum);
+        BLOCK_INFO* tmp_block  = get_block(blockNum); // TODO
         memcpy(tmp_block->data + offset, inode_evict->val, sizeof(struct inode));
         tmp_block->isDirty = 1;
         delete_inode_hashTable(inodeNum);

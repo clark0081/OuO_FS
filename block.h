@@ -7,10 +7,15 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <comp421/yalnix.h>
-#include <comp421/hardware.h>
-#include <comp421/filesystem.h>
-#include <comp421/iolib.h>
+// #include <comp421/yalnix.h>
+// #include <comp421/hardware.h>
+// #include <comp421/filesystem.h>
+// #include <comp421/iolib.h>
+
+#include "yalnix.h"
+#include "hardware.h"
+#include "filesystem.h"
+#include "iolib.h"
 
 #define INODE_TO_BLOCK(inodeNum) (1 + ((inodeNum) / (BLOCKSIZE / INODESIZE)))
 #define INODE_IN_BLOCK_ADDR(inodeNum) (((inodeNum) % (BLOCKSIZE / INODESIZE)) * INODESIZE)
@@ -63,8 +68,8 @@ typedef struct inode_wrap{
 typedef struct block_info{
     int isDirty;
     int blockNum;
-    struct block* prev;
-    struct block* next;
+    struct block_info* prev;
+    struct block_info* next;
     // BLOCKSIZE = SECTORSIZE = 512
     char data[BLOCKSIZE];
 } BLOCK_INFO;
@@ -82,8 +87,8 @@ BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE];
 // init hashTable and bitMap
 void init_inode_block();
 // get inode from disk
-struct* inode_info get_inode(int);
-struct* block_info get_block(int);
+struct inode_info* get_inode(int);
+struct block_info* get_block(int);
 
 void insert_inode_hashTable(int , INODE_INFO* );
 void insert_block_hashTable(int , BLOCK_INFO* );

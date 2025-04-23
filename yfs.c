@@ -3,6 +3,128 @@
 #include "lrucache.h"
 
 
+short findInumInDir(char * filename, short dir) {
+    struct inode_info* dir_inode = get_inode(dir);
+    // TODO: handle invalud dir_inode
+
+    
+    // int numEntries = info->inodeVal->size / sizeof(struct dir_entry);
+    int n = dir_inode->val->size / sizeof(struct dir_entry);
+    int i;
+    struct dir_entry entry;
+
+    for (i = 0; i < n; i++) {
+        if (ReadHandler(dir, i * sizeof(struct dir_entry), (void*)&entry, sizeof(struct dir_entry)) == -1) {
+            TracePrintf(1, "findInumInDir() cannot read dir entry in directory %d\n", dir);
+            return ERROR;
+        }
+
+        if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
+            TracePrintf(1, "findInumInDir() find %s with inum %d in directory %d\n", filename, entry.inum, dir);
+            return entry.inum;
+        }
+    }
+    return ERROR;
+}
+
+short resolvePath(char *pathname, short cur_dir_in) {
+    // check absolute path or not
+    char *org_pathname = pathname; // for Traceprintf
+    short cur_dir = (pathname[0]=='/') ? ROOTINODE : cur_dir_in;
+
+    // symlink count
+    int symlink_count = 0;
+    char *alloc_pathname = NULL;  
+
+    //
+    char node_name[DIRNAMELEN + 1];
+    memset(node_name,'\0',DIRNAMELEN + 1);
+
+    while(pathname[0] == '/') {
+        pathname++;
+    }
+
+    // main loop
+    while (strlen(pathname) > 0) {
+        // initialize
+        int path_len = strlen(pathname);
+		memset(node_name,'\0',DIRNAMELEN + 1);
+        
+        /*
+            /bbb/ccc
+            |
+        */
+
+        while(path_len > 0 && pathname[0] == '/') {
+            pathname++;
+            path_len--;
+        }
+
+        /*
+            /bbb/ccc
+             |
+        */
+
+        // copy "bb" to node_name
+        int i = 0;
+        while(path_len > 0 && pathname[0] != '/') {
+            node_name[i++] = *pathname;
+			pathname++;
+			path_len--;
+		}
+
+        /*
+            /bbb/ccc
+                |
+        */
+
+        short inum = findInumInDir(node_name, cur_dir); // the entry I just found
+        if (inum == -1) {
+            TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s\n", node_name, cur_dir, org_pathname);
+            return ERROR;
+        }
+        INODE_INFO* next_inode_info = get_inode(inum);
+
+        if (next_inode_info->val->type == INODE_SYMLINK) {
+            if(symlink_count >= MAXSYMLINKS) {
+                TracePrintf(1, "resolvePath() reach maximun symlink in traversal for %s.\n", org_pathname);
+                return ERROR;
+            }
+            else {
+                BLOCK_INFO *first_block = get_block(next_inode_info->val->direct[0]);
+
+                int new_path_len = next_inode_info->val->size + path_len + 1;
+                char *new_pathname = (char*)malloc(new_path_len);
+                memset(new_pathname, 0, new_path_len); 
+
+                // copy content
+                memcpy(new_pathname, first_block->data, next_inode_info->val->size);
+                if (path_len > 0) {
+                    strcat(new_pathname, "/");
+					strcat(new_pathname, pathname);
+                }
+
+                // free alloc pathname
+                if (alloc_pathname) { free(alloc_pathname); }
+                alloc_pathname = new_pathname;
+
+                pathname = new_pathname;
+
+                symlink_count++;
+                if (new_pathname[0] == '/') { 
+                    cur_dir = ROOTINODE; 
+                    continue;
+                }
+            }
+        }
+        cur_dir = inum;
+    }
+       
+    if (alloc_pathname) { free(alloc_pathname); }
+    
+    return cur_dir;
+
+}
 
 int MessageHandler(char *msg, int pid)
 {
@@ -97,6 +219,47 @@ int MessageHandler(char *msg, int pid)
 
 int ReadHandler(short inum, int position, void *buf, int size)
 {
+    INODE_INFO *cur_inode_info = get_inode(inum);
+    // TODO: handle error
+
+    int total_read_count = 0;
+    int req_left = 0, file_left = 0, block_left = 0, read_count = 0;
+    struct inode* cur_inode = cur_inode_info->val;
+
+    while (
+        total_read_count < size 
+        && position + total_read_count < cur_inode->size
+    ) {
+        int block_num = (position + total_read_count) / BLOCKSIZE;
+        int block_offset = (position + total_read_count) % BLOCKSIZE;
+        char* block_content = NULL;
+        if (block_num < NUM_DIRECT) {
+            // direct block
+            // get block node using inode->direct[blocknum]
+            BLOCK_INFO * binfo = get_block(cur_inode->direct[block_num]);
+            block_content = &binfo->data[block_offset];
+        }
+        else {
+            // indirect
+            if (block_num > NUM_DIRECT) { return ERROR;} 
+            // get block node using inode->indirect
+            BLOCK_INFO * binfo = get_block(cur_inode->indirect);
+            block_content = &binfo->data[block_offset];
+        }
+        // get block_contnet of block's content using block_offset
+
+        req_left = size - total_read_count;
+        file_left = cur_inode->size - (position + total_read_count);
+        block_left = BLOCKSIZE - block_offset; 
+            
+        read_count = req_left;
+        if (read_count > file_left) read_count = file_left;
+        if (read_count > block_left) read_count = block_left;
+
+        memcpy(buf + total_read_count, block_content, read_count);
+        total_read_count += read_count;
+    }
+    return total_read_count;
     /*
         - get the index node using inum
         int total_read_count = 0;
@@ -131,7 +294,6 @@ int ReadHandler(short inum, int position, void *buf, int size)
         }
         return total_read_count;
     */
-    return 0;
 }
 
 int WriteHandler(short inum, int position, void *buf, int size)

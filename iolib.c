@@ -15,7 +15,7 @@ struct file {
 struct file open_files[MAX_OPEN_FILES];
 int         open_files_count = 0;
 int         open_files_flag = -1;
-short       proc_cur_dir = 0;
+short       proc_cur_dir = ROOTINODE;
 
 
 

@@ -2,17 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <comp421/iolib.h>
-#include <comp421/filesystem.h>
-#include <comp421/yalnix.h>
-#include <comp421/hardware.h>
+// #include <comp421/iolib.h>
+// #include <comp421/filesystem.h>
+// #include <comp421/yalnix.h>
+// #include <comp421/hardware.h>
 #include "block.h"
 #include "lrucache.h"
 
 
 struct inode_info* get_inode(int inodeNum){
     INODE_INFO* result  = get_inode_lru(inodeNum);
-    if(result->inode_number == -1){
+    if(result->inodeNum == -1){
         INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
         int blockNum = INODE_TO_BLOCK(inodeNum);
         BLOCK_INFO* tempBlock = get_block(blockNum);
@@ -100,9 +100,9 @@ void init_inode_block(){
     memset(block_bitmap, 0, block_bitmap_size);
     memset(inode_bitmap, 0, inode_bitmap_size);
     // boot block
-    set_bitmap_used(block_bitmap,0);
+    // set_bitmap_used(block_bitmap,0); TODO
     // fs_header
-    set_bitmap_used(inode_bitmap,0);
+    //set_bitmap_used(inode_bitmap,0); TODO
 
 
     int i;
