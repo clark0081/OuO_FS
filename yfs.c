@@ -307,7 +307,7 @@ int sync() {
         if(cur_inode->isDirty == 1) {
             int blockNum = INODE_TO_BLOCK(inodeNum);
             int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-            BLOCK_INFO* tmp_block  = search_block_hashTable(blockNum);
+            BLOCK_INFO* tmp_block  = get_block(blockNum);
             /*
             if(tmp_block == NULL) {
                 char data[BLOCKSIZE];
@@ -321,13 +321,10 @@ int sync() {
                 memcpy((void*)(tmp_block->data + offset), cur_inode->val, sizeof(struct inode));
                 tmp_block->isDirty = 1;
             }
-            cur_inode->isDirty = 0;
             */
-            if(tmp_block != NULL) {
-                memcpy((void*)(tmp_block->data + offset), cur_inode->val, sizeof(struct inode));
-                tmp_block->isDirty = 1;
-                cur_inode->isDirty = 0;
-            }
+            memcpy(tmp_block->data + offset, cur_inode->val, sizeof(struct inode));
+            tmp_block->isDirty = 1;
+            cur_inode->isDirty = 0;
         }
         cur_inode = cur_inode->next;
     }

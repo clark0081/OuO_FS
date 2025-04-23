@@ -104,6 +104,7 @@ void remove_queue_inode(INODE_INFO* x){
 }
 
 void dequeue_block(){
+    // pop head next
     if (block_head->next == block_tail) {
         return;
     }
@@ -115,6 +116,7 @@ void dequeue_block(){
     temp->prev = NULL;
 }
 void enqueue_block(BLOCK_INFO* x){
+    // add to tail
     if (x == NULL) return;
     x->next = block_tail;
     x->prev = block_tail->prev;
@@ -164,22 +166,129 @@ void delete_block_hashTable(int);
 */
 
 BLOCK_INFO* get_block_lru(int blockNum){
-    BLOCK_WRAP* res = search_inode_hashTable(blockNum);
+    BLOCK_WRAP* res = search_block_hashTable(blockNum);
     if(res == NULL) {
         return block_head;
     }else{
         remove_queue_block(res->value);
+        // add to tail
         enqueue_block(res->value);
         return res->value;
     }
 }
 void set_block_lru(int blockNum, BLOCK_INFO* block){
-
+    BLOCK_WRAP* res = search_block_hashTable(blockNum);
+    if(res == NULL) {
+        // evict shoud reduce the cache size by 1
+        evict_block();
+        enqueue_block(block);
+        insert_block_hashTable(blockNum, block);
+    }else{
+        delete_block_hashTable(blockNum);
+        remove_queue_block(block);
+        enqueue_block(block);
+        insert_block_hashTable(blockNum, block);
+    }
 }
    
-BLOCK_INFO* get_inode_lru(int blockNum){
-
+BLOCK_INFO* get_inode_lru(int inodeNum){
+    INODE_WRAP* res = search_inode_hashTable(inodeNum);
+    if(res == NULL) {
+        return inode_head;
+    }else{
+        remove_queue_inode(res->value);
+        // add to tail
+        enqueue_inode(res->value);
+        return res->value;
+    }
 }
-void set_block_lru(int blockNum, BLOCK_INFO* block){
-
+void set_inode_lru(int inodeNum, INODE_INFO* inode){
+    INODE_WRAP* res = search_inode_hashTable(inodeNum);
+    if(res == NULL) {
+        // evict shoud reduce the cache size by 1
+        evict_inode();
+        enqueue_inode(inode);
+        insert_inode_hashTable(inodeNum, inode);
+    }else{
+        delete_inode_hashTable(inodeNum);
+        remove_queue_inode(inode);
+        enqueue_inode(inode);
+        insert_inode_hashTable(inodeNum, inode);
+    }
 }
+void evict_block(){
+    // check whether cache is full
+    if(block_cache_len >= BLOCK_CACHESIZE) {
+        BLOCK_INFO* block_evict = block_head->next;
+        if(block_evict == block_tail) {
+            return;
+        }
+        // remove from hash table
+        // write back
+        int blockNum = block_evict->blockNum;
+        if(block_evict->isDirty == 1) {
+            int sig = WriteSector(blockNum, (void*)(block_evict->data));
+            if(sig != 0) {
+                printf("in evict_block()..., WriteSector Error.\n");
+                return;
+            }   
+        }
+        delete_block_hashTable(blockNum);
+        remove_queue_block(block_evict);
+        free(block_evict);
+        block_evict = NULL;
+    }
+}
+void evict_inode(){
+    if(inode_cache_len >= INODE_CACHESIZE) {
+        INODE_INFO* inode_evict = inode_head->next;
+        if(inode_evict == inode_tail) {
+            return;
+        }
+        // remove from hash table
+        // write back
+        int inodeNum = inode_evict->inodeNum;
+        int offset = INODE_IN_BLOCK_ADDR(inodeNum);
+        BLOCK_INFO* tmp_block  = get_block(blockNum);
+        memcpy(tmp_block->data + offset, inode_evict->val, sizeof(struct inode));
+        tmp_block->isDirty = 1;
+        delete_inode_hashTable(inodeNum);
+        remove_queue_inode(inode_evict);
+        free(inode_evict->val);
+        free(inode_evict);
+        inode_evict = NULL;
+    }
+}
+
+
+if(current_blockcache_number >= BLOCK_CACHESIZE) {
+    int to_be_removed_key = block_front->block_number;
+    //Here should be another method sync to write inode back to the disk.
+    sync();
+    if(block_front->dirty == 1) {
+       int sig = WriteSector(block_front->block_number, (void*)(block_front->data));
+       if(sig == 0) {
+           printf("An error is generated when doing WriteSector.\n");
+       }
+    }
+    dequeue_block();
+    remove_block_from_hashtable(to_be_removed_key);
+    //Decrement the current block cache number by 1.
+    current_blockcache_number--;
+ }
+if(get_block(block_num) == NULL) {
+    // printf("Key not found\n");
+    //Determines whether a key needs to be removed.
+    evict_block();
+    enqueue_block(input_block);
+    put_block_to_hashtable(block_num, input_block);
+    current_blockcache_number++;
+    return;
+ }else{
+
+    remove_queue_block(get_block(block_num)->block_data);
+    enqueue_block(input_block);
+    put_block_to_hashtable(block_num, input_block);
+
+    return;
+ }

@@ -7,62 +7,47 @@
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 #include "block.h"
+#include "lrucache.h"
 
 
 struct inode_info* get_inode(int inodeNum){
-	/*
-    struct inode_info* result = get_lru_inode(inode_num);
-	if(result->inode_number == -1) {
-		int block_num = calculate_inode_to_block_number(inode_num);
-		struct block_info* tmp = get_lru_block(block_num);
-		if(tmp->block_number == -1) {
-			tmp = read_block_from_disk(block_num);
-
-		}else{
-			//The block is in the cache.
-
-		}
-	}else{
-		return result;
-	}
-    */
-    INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
-    int blockNum = INODE_TO_BLOCK(inodeNum);
-    BLOCK_INFO* tempBlock = get_block(blockNum);
-    int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-    //struct inode* myInode = (struct inode*)(tempBlock->data + offset);
-    struct inode* myInode = malloc(sizeof(struct inode));
-    memcpy(myInode, tempBlock->data + offset, sizeof(struct inode));
-    res->next = NULL;
-    res->prev = NULL;
-    res->val = myInode;
-    res->isDirty = 0;
-    res->inodeNum = inodeNum;
-    return res;
+    INODE_INFO* result  = get_inode_lru(inodeNum);
+    if(result->inode_number == -1){
+        INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
+        int blockNum = INODE_TO_BLOCK(inodeNum);
+        BLOCK_INFO* tempBlock = get_block(blockNum);
+        int offset = INODE_IN_BLOCK_ADDR(inodeNum);
+        //struct inode* myInode = (struct inode*)(tempBlock->data + offset);
+        struct inode* myInode = malloc(sizeof(struct inode));
+        memcpy(myInode, tempBlock->data + offset, sizeof(struct inode));
+        res->next = NULL;
+        res->prev = NULL;
+        res->val = myInode;
+        res->isDirty = 0;
+        res->inodeNum = inodeNum;
+        set_inode_lru(inodeNum, res);
+        return get_inode_lru(inodeNum);
+    }
+    else{
+        return result;
+    }
 }
 
 BLOCK_INFO* get_block(int blockNum) {
     // check LRU
-	//struct block_info* result = get_lru_block(block_num);
-    /*
-	if(result->block_number == -1) {
-		//Reads from the disk.
-		result = (struct block_info*)malloc(sizeof(struct block_info));
-		ReadSector(block_num, (void*)(result->data));
-		//Sets the dirty to not dirty
-		result->dirty = 0;
-		set_lru_block(block_num, result);
-		//To obtain the block_info.
-		return get_lru_block(block_num);
-
+    BLOCK_INFO* result  = get_block_lru(blockNum);
+	if(result->blockNum == -1) {
+		BLOCK_INFO* res = (BLOCK_INFO*)malloc(sizeof(BLOCK_INFO));
+        ReadSector(blockNum, (void*)(res->data));
+        res->isDirty = 0;
+        res->blockNum = blockNum;
+        res->next = NULL;
+        res->prev = NULL;
+        set_block_lru(blockNum, res);
+        return get_block_lru(blockNum);
 	}else{
 		return result;
 	}
-    */
-   BLOCK_INFO* res = (BLOCK_INFO*)malloc(sizeof(BLOCK_INFO));
-   ReadSector(blockNum, (void*)(res->data));
-   res->isDirty = 0;
-   return res;
 }
 
 int hash_key(int key) {
@@ -220,6 +205,7 @@ void delete_inode_hashTable(int key) {
             } else {
                 prev->next = current->next;
             }
+            // only free the wrap, not the value
             free(current);
             return;
         }

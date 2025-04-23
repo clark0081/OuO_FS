@@ -43,7 +43,7 @@ BLOCK_INFO* get_block_lru(int);
 void set_block_lru(int , BLOCK_INFO*);
    
 BLOCK_INFO* get_inode_lru(int);
-void set_block_lru(int , BLOCK_INFO*);
+void set_inode_lru(int , INODE_INFO*);
 void evict_block();
 void evict_inode();
 
