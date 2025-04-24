@@ -1070,27 +1070,26 @@ int main(int argc, char** argv) {
         // child process
         TracePrintf(0, "child start\n");
         Exec(argv[1], argv + 1);
+        Halt();
     }
-    else {
-        while(1) {
-            char msg[MESSAGE_SIZE];
-            int pid = Receive(msg);
-            if (pid == 0) {
-                // deadlock
-                TracePrintf(0, "Receive() return 0 to avoid deadlock\n");
-                Exit(0);
-            }
-            else if (pid == -1) {
-                // error
-                TracePrintf(0, "Receive() return -1 due to error\n");
-                Exit(0);
-            }
-            int res = MessageHandler(msg, pid); // pid for using CopyFrom()/ CopyTo()
-
-            for (int i = 0; i < MESSAGE_SIZE; i++) { msg[i] = '\0'; }  // clean the msg
-            memcpy(msg, &res, sizeof(int));
-            Reply(msg, pid);
+    while(1) {
+        char msg[MESSAGE_SIZE];
+        int pid = Receive(msg);
+        if (pid == 0) {
+            // deadlock
+            TracePrintf(0, "Receive() return 0 to avoid deadlock\n");
+            Exit(0);
         }
+        else if (pid == -1) {
+            // error
+            TracePrintf(0, "Receive() return -1 due to error\n");
+            Exit(0);
+        }
+        int res = MessageHandler(msg, pid); // pid for using CopyFrom()/ CopyTo()
+
+        for (int i = 0; i < MESSAGE_SIZE; i++) { msg[i] = '\0'; }  // clean the msg
+        memcpy(msg, &res, sizeof(int));
+        Reply(msg, pid);
     }
     return 0;
 }

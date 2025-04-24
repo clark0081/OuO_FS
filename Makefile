@@ -30,11 +30,11 @@
 
 # TEST = samples/sample1 samples/tcreate2 samples/tlink samples/topen2 samples/tunlink2 \
 # 		samples/sample2 samples/tcreate samples/tls samples/tsymlink samples/writeread
-TEST = samples/sample1
+TEST = samples/tcreate
 
 
 #
-#	Define the list of everything to be made by this Makefile.
+#	Defines the list of everything to be made by this Makefile.
 #	The list should include "yfs" (the name of your server) and
 #	"iolib.a" (the name of your library).  This should also 
 #	include $(TEST) so that all of your user test programs
