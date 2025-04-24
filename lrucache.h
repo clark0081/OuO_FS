@@ -7,14 +7,14 @@
 #include <string.h>
 #include <stdbool.h>
 
-// #include <comp421/yalnix.h>
-// #include <comp421/hardware.h>
-// #include <comp421/filesystem.h>
-// #include <comp421/iolib.h>
-#include "yalnix.h"
-#include "hardware.h"
-#include "filesystem.h"
-#include "iolib.h"
+#include <comp421/yalnix.h>
+#include <comp421/hardware.h>
+#include <comp421/filesystem.h>
+#include <comp421/iolib.h>
+// #include "yalnix.h"
+// #include "hardware.h"
+// #include "filesystem.h"
+// #include "iolib.h"
 
 #include "block.h"
 

@@ -2,10 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-// #include <comp421/iolib.h>
-// #include <comp421/filesystem.h>
-// #include <comp421/yalnix.h>
-// #include <comp421/hardware.h>
 #include "block.h"
 #include "lrucache.h"
 
