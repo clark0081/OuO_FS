@@ -718,7 +718,7 @@ int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
     
     short parent_inum = getParentInum(newname, cur_dir_idx);
     char* filename = getFilename(newname);
-    short inum = create_file(filename, parent_inum, INODE_SYMLINK);
+    short inum = createFile(filename, parent_inum, INODE_SYMLINK);
     if(inum == ERROR) {
         TracePrintf(1,"SymLinkHandler()  fail to create symlink\n");
         return ERROR; 
@@ -927,12 +927,6 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
     if (node_info->val->nlink <= 0) {
         // delete inode and block
         free_inode(inum);
-        // dirty
-        // inode, inode's block, 
-        // blocks in direct, indirect
-
-
-	    // break;
     }
 
     return 0;
@@ -972,12 +966,18 @@ int ChDirHandler(char *pathname, short cur_dir_idx)
         return ERROR;
     }
     INODE_INFO* info = get_use_inode(inodeNum);
+    if (info == NULL) {
+        TracePrintf(0, "in ChDirHandler() get node error\n");
+        free(new_path);
+        return ERROR;
+    }   
     if(info->val->type != INODE_DIRECTORY){
         TracePrintf(0, "in ChDirHandler()...not a directory\n");
         free(new_path);
         return ERROR;
     }
-    return 0;
+    free(new_path);
+    return info->inodeNum;
 }
 
 int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx)
