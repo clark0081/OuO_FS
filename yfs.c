@@ -8,6 +8,7 @@
 // 1. fix reuse
 // 2. MAXPATHNAMELEN
 
+
 short findInumInDir(char * filename, short dir) {
     struct inode_info* dir_inode = get_use_inode(dir);
     if (dir_inode == NULL) {
@@ -221,7 +222,7 @@ int addEntry(short inum, struct dir_entry new_entry) {
     struct dir_entry entry;
 
     // while loop
-    while (cur_pos < size - sizeof(struct dir_entry)) {
+    while (cur_pos < (int)(size - sizeof(struct dir_entry))) {
         if (ReadHandler(inum, cur_pos, &entry, sizeof(struct dir_entry)) == -1) {
             TracePrintf(1, "addEntry() ReadHandler error!\n");
             return ERROR;
@@ -283,7 +284,7 @@ int MessageHandler(char *msg, int pid)
     int res = 0;
     switch (code)
     {
-    case CALL_OPEN:
+    case CALL_OPEN: {
         /* code */
         void    *pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
@@ -297,7 +298,8 @@ int MessageHandler(char *msg, int pid)
         }
         free(pathname);
         break;
-    case CALL_CREATE:
+    }
+    case CALL_CREATE: {
         /* code */
         void    *pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
@@ -311,7 +313,8 @@ int MessageHandler(char *msg, int pid)
         }
         free(pathname);
         break;
-    case CALL_READ:
+    }
+    case CALL_READ: {
         short   inum = *(short*)(msg+1);
         int     pos = *(int*)(msg+3);
         void    *buf = *(void**)(msg + 7);
@@ -327,7 +330,8 @@ int MessageHandler(char *msg, int pid)
         }
         free(tmp_buf);
         break;
-    case CALL_WRITE:
+    }
+    case CALL_WRITE: {
         short   inum = *(short*)(msg+1);
         int     pos = *(int*)(msg+3);
         void    *buf = *(void**)(msg + 7);
@@ -341,7 +345,8 @@ int MessageHandler(char *msg, int pid)
         }
         free(tmp_buf);
         break;
-    case CALL_SEEK:
+    }
+    case CALL_SEEK: {
         /* code */
         short   inum = *(short*)(msg+1);
         res = SeekHandler(inum);
@@ -349,7 +354,8 @@ int MessageHandler(char *msg, int pid)
             TracePrintf(1, "SeekHandler() error!\n");
         }
         break;
-    case CALL_LINK:
+    }
+    case CALL_LINK: {
         /* code */
         void* oldname_addr = *(void**)(msg + 1);
         int     oldname_len = *(int*)(msg+9);
@@ -369,7 +375,8 @@ int MessageHandler(char *msg, int pid)
         free(oldname);
         free(newname);
         break;
-    case CALL_UNLINK:
+    }
+    case CALL_UNLINK: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         short   cur_dir = *(short*)(msg+13);
@@ -381,7 +388,8 @@ int MessageHandler(char *msg, int pid)
         res = UnlinkHandler(pathname, cur_dir);
         free(pathname);
         break;
-    case CALL_SYMLINK:
+    }
+    case CALL_SYMLINK: {
         void* oldname_addr = *(void**)(msg + 1);
         int     oldname_len = *(int*)(msg+9);
         void* newname_addr = *(void**)(msg + 13);
@@ -400,7 +408,8 @@ int MessageHandler(char *msg, int pid)
         free(oldname);
         free(newname);
         break;
-    case CALL_READLINK:
+    }
+    case CALL_READLINK: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         void* buf_addr = *(void**)(msg + 13);
@@ -422,7 +431,8 @@ int MessageHandler(char *msg, int pid)
         free(tmp_buf);
         free(pathname);
         break;
-    case CALL_MKDIR:
+    }
+    case CALL_MKDIR: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         short   cur_dir = *(short*)(msg+13);
@@ -434,7 +444,8 @@ int MessageHandler(char *msg, int pid)
         res = MkDirHandler(pathname, cur_dir);
         free(pathname);
         break;
-    case CALL_RMDIR:
+    }
+    case CALL_RMDIR: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         short   cur_dir = *(short*)(msg+13);
@@ -446,7 +457,8 @@ int MessageHandler(char *msg, int pid)
         res = RmDirHandler(pathname, cur_dir);
         free(pathname);
         break;
-    case CALL_CHDIR:
+    }
+    case CALL_CHDIR: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         short   cur_dir = *(short*)(msg+13);
@@ -458,7 +470,8 @@ int MessageHandler(char *msg, int pid)
         res = ChDirHandler(pathname, cur_dir);
         free(pathname);
         break;
-    case CALL_STAT:
+    }
+    case CALL_STAT: {
         void* pathname_addr = *(void**)(msg + 1);
         int     pathname_len = *(int*)(msg+9);
         void* stat_buf = *(void**)(msg + 13);
@@ -478,14 +491,16 @@ int MessageHandler(char *msg, int pid)
         free(tmp_buf);
         free(pathname);
         break;
-    case CALL_SYNC:
+    }
+    case CALL_SYNC: {
         /* code */
         res = SyncHandler();
         if (res == -1) {
             TracePrintf(1, "SyncHandler() error!\n");
         }
         break;
-    case CALL_SHUTDOWN:
+    }
+    case CALL_SHUTDOWN: {
         /* code */
         res = ShutdownHandler();
         if (res == -1) {
@@ -506,9 +521,11 @@ int MessageHandler(char *msg, int pid)
 		    Exit(0);
 	    }
         break;
-    default:
+    }
+    default: {
         TracePrintf(1, "MessageHandler() Unrecognized code!\n");
         break;
+    }
     }
     return res;
 }
@@ -574,7 +591,7 @@ int ReadHandler(short inum, int position, void *buf, int size)
         }
         else {
             // indirect
-            if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
+            if (block_num >= (int)(NUM_DIRECT + BLOCKSIZE/sizeof(int))) { return ERROR;} 
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
 
@@ -638,7 +655,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
         }
         else {
             // indirect
-            if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
+            if (block_num >= (int)(NUM_DIRECT + BLOCKSIZE/sizeof(int))) { return ERROR;} 
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
 
@@ -845,7 +862,7 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
     }
 
     int i;
-    for(i = 2; i < info->val->size / sizeof(struct dir_entry); i++){
+    for(i = 2; i < (int)(info->val->size / sizeof(struct dir_entry)); i++){
 	    struct dir_entry entry;
         ReadHandler(inodeNum, i * sizeof(entry), (void*)&entry, sizeof(entry));
 	    if(entry.inum != 0){
@@ -868,7 +885,7 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
         return ERROR;
     }
     struct dir_entry entry;
-    for(i = 2; i < (parent_info->val->size / sizeof(struct dir_entry)); i++){
+    for(i = 2; i < (int)(parent_info->val->size / sizeof(struct dir_entry)); i++){
 	    if(ReadHandler(parent_inodeNum, i * sizeof(entry), (void*)&entry, sizeof(entry)) == -1){
             TracePrintf(0, "in RmDirHandler()...cannot find entry parent inode\n");
             free(new_path);
@@ -900,7 +917,7 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
     int inum = -1;
     INODE_INFO * node_info = NULL;
     struct dir_entry entry;
-    for (int pos = 0; pos < parent_info->val->size - sizeof(struct dir_entry); pos += sizeof(struct dir_entry)) {
+    for (int pos = 0; pos < (int)(parent_info->val->size - sizeof(struct dir_entry)); pos += sizeof(struct dir_entry)) {
         if (ReadHandler(parent_inum, pos, &entry, sizeof(struct dir_entry)) == -1) {
             TracePrintf(1, "UnlinkHandler() ReadHandler error!\n");
             return ERROR;
@@ -1046,6 +1063,7 @@ int SeekHandler(short inodeNum){
 }
 
 int main(int argc, char** argv) {
+    (void)argc;
     int pid = Fork();
     if (pid == 0) {
         // child process
@@ -1074,56 +1092,3 @@ int main(int argc, char** argv) {
     }
     return 0;
 }
-
-
-
-
-int sync() {
-    // This request writes all dirty cached inodes back to their corresponding disk blocks (in the cache) 
-    // and then writes all dirty cached disk blocks to the disk. 
-    // The request does not complete until all dirty inodes and disk blocks have been written to the disk; 
-    // this request always then returns the value 0.
-    INODE_INFO* cur_inode = inode_head;
-    BLOCK_INFO* cur_block = block_head;
-    while(cur_inode != inode_tail) {
-        int inodeNum = cur_inode->inodeNum;
-        if(cur_inode->isDirty == 1) {
-            int blockNum = INODE_TO_BLOCK(inodeNum);
-            int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-            BLOCK_INFO* tmp_block  = get_block(blockNum);
-            /*
-            if(tmp_block == NULL) {
-                char data[BLOCKSIZE];
-                ReadSector(blockNum, (void*)(data));
-                memcpy(data + offset, cur_inode->val, sizeof(struct inode));
-                int sig = WriteSector(blockNum, (void*)(data));
-                if(sig == 0) {
-         	        printf("in sync()...WriteSector Error\n");
-                }
-            }else{
-                memcpy((void*)(tmp_block->data + offset), cur_inode->val, sizeof(struct inode));
-                tmp_block->isDirty = 1;
-            }
-            */
-            memcpy(tmp_block->data + offset, cur_inode->val, sizeof(struct inode));
-            tmp_block->isDirty = 1;
-            cur_inode->isDirty = 0;
-        }
-        cur_inode = cur_inode->next;
-    }
-  
-    while(cur_block != block_tail) {
-        if(cur_block->isDirty == 1) {
-            int sig = WriteSector(cur_block->blockNum, (void*)(cur_block->data));
-            if(sig == 0) {
-                cur_block->isDirty = 0;
-            }else{
-                printf("in sync()...WriteSector Error\n");
-                return -1;
-            } 
-            cur_block->isDirty = 0;
-        }
-        cur_block = cur_block->next;
-    }
-    return 0;
-  }

@@ -392,7 +392,7 @@ int extend(INODE_INFO* info, int newsize){
 	    block_indirect->isDirty = 1;
 	    int* content = (int*)(block_indirect->data);
         // BLOCKSIZE / sizeof(int) how many blocks in a indirect block
-        while(cur_block_max < BLOCKSIZE * (NUM_DIRECT + BLOCKSIZE / sizeof(int)) && cur_block_max < newsize ) {
+        while(cur_block_max < (int)(BLOCKSIZE * (NUM_DIRECT + BLOCKSIZE / sizeof(int))) && cur_block_max < newsize ) {
 	        int free_block = find_free(block_bitmap, NUM_BLOCKS);
             if(free_block == -1) {
                 TracePrintf(1, "in extend(): no free blocks for indirect block\n");
@@ -457,3 +457,53 @@ int free_inode(int inodeNum){
     info = NULL;
     return 0;
 }
+
+int sync() {
+    // This request writes all dirty cached inodes back to their corresponding disk blocks (in the cache) 
+    // and then writes all dirty cached disk blocks to the disk. 
+    // The request does not complete until all dirty inodes and disk blocks have been written to the disk; 
+    // this request always then returns the value 0.
+    INODE_INFO* cur_inode = inode_head;
+    BLOCK_INFO* cur_block = block_head;
+    while(cur_inode != inode_tail) {
+        int inodeNum = cur_inode->inodeNum;
+        if(cur_inode->isDirty == 1) {
+            int blockNum = INODE_TO_BLOCK(inodeNum);
+            int offset = INODE_IN_BLOCK_ADDR(inodeNum);
+            BLOCK_INFO* tmp_block  = get_block(blockNum);
+            /*
+            if(tmp_block == NULL) {
+                char data[BLOCKSIZE];
+                ReadSector(blockNum, (void*)(data));
+                memcpy(data + offset, cur_inode->val, sizeof(struct inode));
+                int sig = WriteSector(blockNum, (void*)(data));
+                if(sig == 0) {
+         	        printf("in sync()...WriteSector Error\n");
+                }
+            }else{
+                memcpy((void*)(tmp_block->data + offset), cur_inode->val, sizeof(struct inode));
+                tmp_block->isDirty = 1;
+            }
+            */
+            memcpy(tmp_block->data + offset, cur_inode->val, sizeof(struct inode));
+            tmp_block->isDirty = 1;
+            cur_inode->isDirty = 0;
+        }
+        cur_inode = cur_inode->next;
+    }
+  
+    while(cur_block != block_tail) {
+        if(cur_block->isDirty == 1) {
+            int sig = WriteSector(cur_block->blockNum, (void*)(cur_block->data));
+            if(sig == 0) {
+                cur_block->isDirty = 0;
+            }else{
+                printf("in sync()...WriteSector Error\n");
+                return -1;
+            } 
+            cur_block->isDirty = 0;
+        }
+        cur_block = cur_block->next;
+    }
+    return 0;
+  }

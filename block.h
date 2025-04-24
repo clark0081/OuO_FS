@@ -92,5 +92,6 @@ void clear_inode_block_hashTable();
 int extend(INODE_INFO* , int);
 
 int free_inode(int);
+int sync();
 
 #endif 
