@@ -208,7 +208,7 @@ int addEntry(short inum, struct dir_entry new_entry) {
 
     // get the entry inode
     INODE_INFO *entry_inode_info = get_use_inode(new_entry.inum);
-    if (inode_info == NULL) {
+    if (entry_inode_info == NULL) {
         TracePrintf(1, "addEntry() cannot get inode of new entry!\n");
         return ERROR;
     }
@@ -262,18 +262,14 @@ short createFile(char *filename, short parent_inum, int file_type) {
 
     struct dir_entry new_entry = createEntry(new_inode_info->inodeNum, filename);
 
-    // TODO add entry
-    if (addEntry(parent_inum, new_entry) == -1) {
-        set_bitmap_free(inode_bitmap, new_inode_info->inodeNum,  NUM_INODES);
-        return ERROR;
-    }
     new_inode_info->val->type = file_type;
     new_inode_info->val->nlink = 0;
     new_inode_info->val->size = 0;
     new_inode_info->val->reuse++;
-    new_inode_info->isDirty = 1;
-    BLOCK_INFO* binfo = get_block(INODE_TO_BLOCK(new_inode_info->inodeNum));
-    binfo->isDirty = 1;
+    if (addEntry(parent_inum, new_entry) == -1) {
+        set_bitmap_free(inode_bitmap, new_inode_info->inodeNum,  NUM_INODES);
+        return ERROR;
+    }
 
     return new_inode_info->inodeNum; // inum
 }
@@ -485,7 +481,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
             // TODO: handle error
-            
+
             int *indirect_blocks = (int *)indirectbinfo->data;
             int bnum = indirect_blocks[block_num - NUM_DIRECT];
 
