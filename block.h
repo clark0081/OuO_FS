@@ -36,6 +36,7 @@ struct inode {
 
 int NUM_BLOCKS;
 int NUM_INODES;
+int NUM_BLOCKS_FOR_INODES;
 unsigned char* block_bitmap = NULL;
 unsigned char* inode_bitmap = NULL;
 
@@ -99,6 +100,8 @@ void delete_inode_hashTable(int);
 void delete_block_hashTable(int);
 void clear_inode_block_hashTable();
 int extend(INODE_INFO* , int);
+
+int free_inode(int);
 //-------------------------------------------------------------
 //LRU
 
