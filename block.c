@@ -117,6 +117,7 @@ void init_inode_block(){
     
     NUM_INODES = myHeader->num_inodes;
     NUM_BLOCKS = myHeader->num_blocks;
+    NUM_BLOCKS_FOR_INODES = (NUM_INODES * INODESIZE + BLOCKSIZE - 1) / BLOCKSIZE;
 
 
     int block_bitmap_size = (NUM_BLOCKS + 7) / 8;
@@ -133,30 +134,55 @@ void init_inode_block(){
 
     int i;
     // set block list for inodes used
-    for(i = 1; i < (NUM_INODES * INODESIZE) / BLOCKSIZE ; i++){
+    for(i = 1; i <= NUM_BLOCKS_FOR_INODES ; i++){
         set_bitmap_used(block_bitmap,i,NUM_BLOCKS);
     }
     // check all inodes
     for(i = 1; i < NUM_INODES; i++){
-	    struct inode* temp = get_use_inode(i)->val;
-	    if(temp->type == INODE_FREE){
+        //TODO
+        INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
+        int blockNum = INODE_TO_BLOCK(i);
+        BLOCK_INFO* tempBlock = get_block(blockNum);
+        int offset = INODE_IN_BLOCK_ADDR(i);
+        struct inode* temp = malloc(sizeof(struct inode));
+        memcpy(temp, tempBlock->data + offset, sizeof(struct inode));
+        res->next = NULL;
+        res->prev = NULL;
+        res->val = temp;
+        res->isDirty = 0;
+        res->inodeNum = i;
+	    if(temp->type != INODE_FREE){
             set_bitmap_used(inode_bitmap,i,NUM_INODES);
 	        int j = 0;
 	        // direct blocks
 	        while(j < NUM_DIRECT && j * BLOCKSIZE < temp->size){
-		        set_bitmap_used(block_bitmap,temp->direct[j],NUM_BLOCKS);
+                if(temp->direct[j] > NUM_BLOCKS_FOR_INODES && temp->direct[j] < NUM_BLOCKS){
+		            set_bitmap_used(block_bitmap,temp->direct[j],NUM_BLOCKS);
+                }
+                else{
+                    printf("in init...blockNum is out of range\n");
+                }
 		        j++;		    
 	        }
-
 	        if(j * BLOCKSIZE < temp->size){
 		        int* indirect_block = (int*)(get_block(temp->indirect)->data);
 		        while(j * BLOCKSIZE < temp->size){
                     int indirect_blockNum = indirect_block[j - NUM_DIRECT];
-		            set_bitmap_used(block_bitmap,indirect_blockNum,NUM_BLOCKS);
+                    if(indirect_blockNum > NUM_BLOCKS_FOR_INODES && indirect_blockNum < NUM_BLOCKS){
+		                set_bitmap_used(block_bitmap,indirect_blockNum,NUM_BLOCKS);
+                    }
+                    else{
+                        printf("in init...indirect blockNum is out of range\n");
+                    }
 		            j++;
 		        }
 	        }
+            set_inode_lru(i, res);
 	    }
+        else{
+            free(res->val);
+            free(res);
+        }
     }
 }
 
@@ -370,5 +396,56 @@ int extend(INODE_INFO* info, int newsize){
 	    }
     }
     inode->size = newsize;
+    return 0;
+}
+
+
+int free_inode(int inodeNum){
+    INODE_INFO* info = get_use_inode(inodeNum);
+    if(info == NULL){
+        TracePrintf(1, "in free_inode(): cannot find inode\n");
+        return -1;
+    }
+    int j = 0;
+	// direct blocks
+	while(j < NUM_DIRECT && j * BLOCKSIZE < info->val->size){
+        if(info->val->direct[j] > NUM_BLOCKS_FOR_INODES && info->val->direct[j] < NUM_BLOCKS){
+            set_bitmap_free(block_bitmap,info->val->direct[j],NUM_BLOCKS);
+        }
+        else{
+            TracePrintf(1, "in free_inode(): direct block num is in inode block\n");
+            return -1;
+        }
+		j++;		    
+	}
+    memset(info->val->direct, 0, sizeof(info->val->direct));
+	if(j * BLOCKSIZE < info->val->size){
+		int* indirect_block = (int*)(get_block(info->val->indirect)->data);
+		while(j * BLOCKSIZE < info->val->size){
+            int indirect_blockNum = indirect_block[j - NUM_DIRECT];
+            if(indirect_blockNum > NUM_BLOCKS_FOR_INODES && indirect_blockNum < NUM_BLOCKS){
+                set_bitmap_free(block_bitmap,indirect_blockNum,NUM_BLOCKS);
+            }
+            else{
+                TracePrintf(1, "in free_inode(): indirect block num is in inode block\n");
+                return -1;
+            }
+		    j++;
+		}
+        set_bitmap_free(block_bitmap,info->val->indirect,NUM_BLOCKS);
+	}
+
+    info->val->size = 0;
+    info->val->type = INODE_FREE;
+    info->val->nlink = 0;
+    info->isDirty = 1;
+    info->val->indirect = 0;
+    set_bitmap_free(inode_bitmap,info->inodeNum,NUM_INODES);
+    sync();
+    delete_inode_hashTable(info->inodeNum);
+    remove_queue_inode(info);
+    free(info->val);
+    free(info);
+    info = NULL;
     return 0;
 }

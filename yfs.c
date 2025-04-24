@@ -274,8 +274,7 @@ short createFile(char *filename, short parent_inum, int file_type) {
     new_inode_info->val->reuse++;
     if (addEntry(parent_inum, new_entry) == -1) {
         new_inode_info->val->reuse--;
-        set_bitmap_free(inode_bitmap, new_inode_info->inodeNum,  NUM_INODES);
-        new_inode_info->inodeNum = -1;
+        free_inode(new_inode_info->inodeNum);
         return ERROR;
     }
 
@@ -808,10 +807,7 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
     node_info->val->nlink--;
     if (node_info->val->nlink <= 0) {
         // delete inode and block
-        // TODO
-        // info->val->type = INODE_FREE;    
-        // set_bitmap_free(inode_bitmap, inodeNum, NUM_INODES);
-        
+        free_inode(inum);
         // dirty
         // inode, inode's block, 
         // blocks in direct, indirect
