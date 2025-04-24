@@ -251,7 +251,7 @@ void evict_inode(){
         int inodeNum = inode_evict->inodeNum;
         int blockNum = INODE_TO_BLOCK(inodeNum);
         int offset = INODE_IN_BLOCK_ADDR(inodeNum);
-        BLOCK_INFO* tmp_block  = get_block(blockNum); // TODO
+        BLOCK_INFO* tmp_block  = get_block(blockNum);
         memcpy(tmp_block->data + offset, inode_evict->val, sizeof(struct inode));
         tmp_block->isDirty = 1;
         delete_inode_hashTable(inodeNum);
