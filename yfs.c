@@ -386,6 +386,24 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_SHUTDOWN:
         /* code */
+        res = ShutdownHandler();
+        if (res == -1) {
+            TracePrintf(1, "ShutdownHandler() error!\n");
+        }
+	    if(res == 0){
+		
+		    int i;
+		    for(i = 0; i < MESSAGE_SIZE; i++){
+		        msg[i] = '\0';
+		    }
+		    memcpy(msg, &res, sizeof(res));
+		    Reply(msg, pid);      
+            printf("------------------------------------------------------------------\n");
+            printf("Shutdown request received. Terminating Yalnix File System....\n");
+            printf("GoodBye ~~(｡•́︿•̀｡)   \n");
+		    printf("------------------------------------------------------------------\n");
+		    Exit(0);
+	    }
         break;
     default:
         TracePrintf(1, "MessageHandler() Unrecognized code!\n");
