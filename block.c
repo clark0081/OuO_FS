@@ -5,6 +5,13 @@
 #include "block.h"
 #include "lrucache.h"
 
+int NUM_BLOCKS;
+int NUM_INODES;
+int NUM_BLOCKS_FOR_INODES;
+unsigned char* block_bitmap = NULL;
+unsigned char* inode_bitmap = NULL;
+INODE_WRAP* inode_hashtable[HASH_TABLE_SIZE] = {0}; 
+BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE] = {0}; 
 
 struct inode_info* get_use_inode(int inodeNum){
     INODE_INFO* result  = get_inode_lru(inodeNum);

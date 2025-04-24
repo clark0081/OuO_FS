@@ -24,15 +24,6 @@
 
 
 
-int NUM_BLOCKS;
-int NUM_INODES;
-int NUM_BLOCKS_FOR_INODES;
-unsigned char* block_bitmap = NULL;
-unsigned char* inode_bitmap = NULL;
-
-
-
-
 void set_bitmap_used(unsigned char* , int, int);
 void set_bitmap_free(unsigned char* , int, int);
 int is_free(unsigned char* , int, int);
@@ -72,8 +63,21 @@ typedef struct block_wrap{
 }BLOCK_WRAP;
 
 
-INODE_WRAP* inode_hashtable[HASH_TABLE_SIZE]; 
-BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE]; 
+// int NUM_BLOCKS;
+// int NUM_INODES;
+// int NUM_BLOCKS_FOR_INODES;
+// unsigned char* block_bitmap;
+// unsigned char* inode_bitmap;
+// INODE_WRAP* inode_hashtable[HASH_TABLE_SIZE]; 
+// BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE]; 
+
+extern int NUM_BLOCKS;
+extern int NUM_INODES;
+extern int NUM_BLOCKS_FOR_INODES;
+extern unsigned char* block_bitmap;
+extern unsigned char* inode_bitmap;
+extern INODE_WRAP* inode_hashtable[HASH_TABLE_SIZE]; 
+extern BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE]; 
 
 // init hashTable and bitMap
 void init_inode_block();
