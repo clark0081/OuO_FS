@@ -220,16 +220,15 @@ int addEntry(short inum, struct dir_entry new_entry) {
 
     int size = inode_info->val->size;
     int cur_pos = 0;
-    struct dir_entry cur_entry;
+    struct dir_entry entry;
 
     // while loop
-    while (cur_pos < size) {
-        int res = ReadHandler(inum, cur_pos, &cur_entry, sizeof(struct dir_entry));
-        if (res == -1) {
+    while (cur_pos < size - sizeof(struct dir_entry)) {
+        if (ReadHandler(inum, cur_pos, &entry, sizeof(struct dir_entry)) == -1) {
             TracePrintf(1, "addEntry() ReadHandler error!\n");
             return ERROR;
         }
-        if (cur_entry.inum == 0) { // TODO sync with rmdir
+        if (entry.inum == 0) { // TODO sync with rmdir
             break;
         }
         cur_pos += sizeof(struct dir_entry);
@@ -341,7 +340,7 @@ int MessageHandler(char *msg, int pid)
         CopyFrom(pid, tmp_buf, buf, write_len);
         res = WriteHandler(inum, pos, tmp_buf, read_len);
         if (res == -1) {
-            TracePrintf(1, "ReadHandler() error!\n");
+            TracePrintf(1, "WriteHandler() error!\n");
         }
         free(tmp_buf);
         break;
@@ -419,7 +418,7 @@ int ReadHandler(short inum, int position, void *buf, int size)
     // This request returns the number of bytes read, which will be 0 if reading at the end-of-file; 
     // the number of bytes read will be the minimum of the number of bytes requested and the number of bytes remaining in the file before the end-of-file. 
     // Upon successful completion, the current position in the file as represented by the given file descriptor fd should be advanced by the number of bytes read, 
-    // and only this number of bytes within the caller’s buf should be modified (bytes beyond this count must remain unchanged). 
+    // and only this number of bytes within the callerï¿½s buf should be modified (bytes beyond this count must remain unchanged). 
     // On any error, this call should return ERROR. It is not an error to attempt to Read() from a file descriptor that is open on a directory. 
     // Unless this Read operation returns ERROR, the current position for subsequent Read or Write operations on this file descriptor 
     // advances by the number of bytes read (the value returned by the Read request).
@@ -634,7 +633,7 @@ int ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx)
     // up to a maximum number of characters of len characters; 
     // if the name that the symbolic link points to is longer than len bytes, 
     // the name is truncated as returned in the buffer buf (this is not an error). 
-    // The characters placed into buf are not terminated by a ’\0’ character. 
+    // The characters placed into buf are not terminated by a ï¿½\0ï¿½ character. 
     // On any error, the value ERROR is returned.
 
 
@@ -712,12 +711,12 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
             free this file
     */
     // This request deletes the existing directory named pathname. 
-    // The directory must contain no directory entries other than the ¡§.¡¨ and ¡§..¡¨ 
+    // The directory must contain no directory entries other than the ï¿½ï¿½.ï¿½ï¿½ and ï¿½ï¿½..ï¿½ï¿½ 
     // entries and possibly some free entries. 
     // On success, this request returns 0; 
     // on any error, the value ERROR is returned. 
     // Note that it is an error to attempt to remove the root directory; 
-    // it is also an error to attempt to remove individually the ¡§.¡¨ or ¡§..¡¨ entry from a directory.
+    // it is also an error to attempt to remove individually the ï¿½ï¿½.ï¿½ï¿½ or ï¿½ï¿½..ï¿½ï¿½ entry from a directory.
     if(strcmp(pathname, "/") || strcmp(pathname, ".") || strcmp(pathname, "..") == 0){
         TracePrintf(0, "in RmDirHandler()...attempting to remove root or . or ..\n");
         return ERROR;
@@ -791,6 +790,59 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
 	    }
     }
     free(new_path);
+    return 0;
+}
+
+int UnlinkHandler(char* pathname, short cur_dir_idx) {
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"UnlinkHandler() cannot find parent inode\n");
+        return ERROR;
+    }
+    char* filename = getFilename(pathname);
+    // loop through parent's data to find file name
+    INODE_INFO* parent_info = get_use_inode(parent_inum);
+    int inum = -1;
+    INODE_INFO * node_info = NULL;
+    struct dir_entry entry;
+    for (int pos = 0; pos < parent_info->val->size - sizeof(struct dir_entry); pos += sizeof(struct dir_entry)) {
+        if (ReadHandler(parent_inum, pos, &entry, sizeof(struct dir_entry)) == -1) {
+            TracePrintf(1, "UnlinkHandler() ReadHandler error!\n");
+            return ERROR;
+        }
+
+        if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
+            inum = entry.inum;
+            node_info = get_use_inode(inum);
+            if (node_info->val->type == INODE_DIRECTORY) {
+                TracePrintf(1, "UnlinkHandler() pathname is a directory!\n");
+                return ERROR;
+            }
+            // null dir_entry
+            struct dir_entry null_entry = createEntry(0, "\0");
+            if (WriteHandler(parent_inum, pos, &null_entry, sizeof(struct dir_entry)) == -1) {
+                TracePrintf(1, "UnlinkHandler() fail to clear dir_entry!\n");
+                return ERROR;
+            }
+            break;  
+        }
+    }
+    // check inode nlink
+    node_info->val->nlink--;
+    if (node_info->val->nlink <= 0) {
+        // delete inode and block
+        // TODO
+        // info->val->type = INODE_FREE;    
+        // set_bitmap_free(inode_bitmap, inodeNum, NUM_INODES);
+        
+        // dirty
+        // inode, inode's block, 
+        // blocks in direct, indirect
+
+
+	    // break;
+    }
+
     return 0;
 }
 
