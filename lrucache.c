@@ -138,6 +138,7 @@ void clear_inode_cache(){
     while (current != NULL && current != inode_tail) {
         INODE_INFO* temp = current;
         current = current->next;
+        free(temp->val);
         free(temp);
         inode_cache_len--;
     }

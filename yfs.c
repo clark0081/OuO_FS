@@ -876,7 +876,19 @@ int ShutdownHandler()
     // (as in a Sync request), and the file server should then call Exit to complete its shutdown. 
     // As part of a Shutdown request, the server should print an informative message indicating that it is shutting down. 
     // This request always returns the value 0.
-
+    sync();
+    
+    // free hash table
+    // free inode list
+    // free block list
+    // free bitmap
+    free(block_bitmap);
+    free(inode_bitmap);
+    block_bitmap = NULL;
+    inode_bitmap = NULL;
+    clear_inode_block_hashTable();
+    clear_inode_cache();
+    clear_block_cache();
     return 0;
 }
 
