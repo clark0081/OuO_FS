@@ -103,7 +103,18 @@ int find_free(unsigned char* bitmap, int len) {
 
 void init_inode_block(){
     
-    INODE_INFO* inode_header = get_inode(0);
+
+    INODE_INFO* inode_header = (INODE_INFO*)malloc(sizeof(INODE_INFO));
+    int blockNum = INODE_TO_BLOCK(0);
+    BLOCK_INFO* tempBlock = get_block(blockNum);
+    int offset = INODE_IN_BLOCK_ADDR(0);
+    struct inode* temp = malloc(sizeof(struct inode));
+    memcpy(temp, tempBlock->data + offset, sizeof(struct inode));
+    inode_header->next = NULL;
+    inode_header->prev = NULL;
+    inode_header->val = temp;
+    inode_header->isDirty = 0;
+    inode_header->inodeNum = 0;
     struct fs_header* myHeader = (struct fs_header*)(inode_header->val);
 
     // init hasg table to null
@@ -114,6 +125,8 @@ void init_inode_block(){
     NUM_INODES = myHeader->num_inodes;
     NUM_BLOCKS = myHeader->num_blocks;
     NUM_BLOCKS_FOR_INODES = (NUM_INODES * INODESIZE + BLOCKSIZE - 1) / BLOCKSIZE;
+    free(inode_header->val);
+    free(inode_header);
 
 
     int block_bitmap_size = (NUM_BLOCKS + 7) / 8;

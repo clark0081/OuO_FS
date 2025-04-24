@@ -335,7 +335,7 @@ int MessageHandler(char *msg, int pid)
 
         void* tmp_buf = malloc(write_len);
         CopyFrom(pid, tmp_buf, buf, write_len);
-        res = WriteHandler(inum, pos, tmp_buf, read_len);
+        res = WriteHandler(inum, pos, tmp_buf, write_len);
         if (res == -1) {
             TracePrintf(1, "WriteHandler() error!\n");
         }
@@ -362,7 +362,7 @@ int MessageHandler(char *msg, int pid)
         oldname[oldname_len] = '\0';
 
         char* newname = (char*)malloc(newname_len + 1);
-        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        CopyFrom(pid, (void*)newname, newname_addr, newname_len);
         newname[newname_len] = '\0';
 
         res = LinkHandler(oldname, newname, cur_dir);
@@ -393,7 +393,7 @@ int MessageHandler(char *msg, int pid)
         oldname[oldname_len] = '\0';
 
         char* newname = (char*)malloc(newname_len + 1);
-        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        CopyFrom(pid, (void*)newname, newname_addr, newname_len);
         newname[newname_len] = '\0';
 
         res = SymLinkHandler(oldname, newname, cur_dir);
@@ -417,7 +417,7 @@ int MessageHandler(char *msg, int pid)
             TracePrintf(1, "ReadLinkHandler() error!\n");
         }
         else {
-            CopyTo(pid, buf, tmp_buf, res);
+            CopyTo(pid, buf_addr, tmp_buf, res);
         }
         free(tmp_buf);
         free(pathname);

@@ -4,6 +4,8 @@
 #include <comp421/iolib.h>
 // #include "iolib.h"
 #include "yfs.h"
+#include <stdlib.h>
+#include <string.h>
 
 
 struct file {
@@ -63,7 +65,7 @@ int Open(char *pathname) {
     }
     // fill in message
     char message[MESSAGE_SIZE];
-    message[0] = (char)CALL_CREATE;
+    message[0] = (char)CALL_OPEN;
     memcpy(message + 1, &pathname_copy, sizeof(char*));
     memcpy(message + 9, &pathname_size, sizeof(int));
     memcpy(message + 13, &proc_cur_dir, sizeof(short));
@@ -98,7 +100,7 @@ int Close(int fd) {
         return 0; 
     }
 
-    if (0 < fd || fd >= MAX_OPEN_FILES) {
+    if (fd < 0 || fd >= MAX_OPEN_FILES) {
         TracePrintf(1, "Close(): Invalid file descriptor %d\n", fd);
         return ERROR;
     }
@@ -184,7 +186,7 @@ int Read(int fd, void *buf, int size) {
     TracePrintf(1, "Read(): start fd %d\n", fd);
     if (open_files_flag == -1) { InitOpenfileVector(); }
 
-    if (0 < fd || fd >= MAX_OPEN_FILES) {
+    if (fd < 0 || fd >= MAX_OPEN_FILES) {
         TracePrintf(1, "Read(): Invalid file descriptor %d\n", fd);
         return ERROR;
     }
@@ -225,7 +227,7 @@ int Write(int fd, void *buf, int size) {
     TracePrintf(1, "Write(): start fd %d\n", fd);
     if (open_files_flag == -1) { InitOpenfileVector(); }
 
-    if (0 < fd || fd >= MAX_OPEN_FILES) {
+    if (fd < 0 || fd >= MAX_OPEN_FILES) {
         TracePrintf(1, "Write(): Invalid file descriptor %d\n", fd);
         return ERROR;
     }
@@ -288,11 +290,11 @@ int SymLink(char *oldname, char *newname) {
     char* newname_copy = (char*)malloc(newname_size + 2); // add "\0"
     memcpy(newname_copy, newname, newname_size);
     if (newname[oldname_size-1] == '/') {
-        newname_copy[oldname_size] = '.';
-        newname_copy[oldname_size+1] = '\0';
+        newname_copy[newname_size] = '.';
+        newname_copy[newname_size+1] = '\0';
     }
     else {
-        newname_copy[oldname_size] = '\0';
+        newname_copy[newname_size] = '\0';
     }
 
     char message[MESSAGE_SIZE];
@@ -378,7 +380,7 @@ int MkDir(char *pathname) {
     char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
     if (pathname_size != 1 && pathname[pathname_size-1] == '/') {
-        pathname_copy[pathname_size-1] == '/';
+        pathname_copy[pathname_size-1] = '\0';
     }
     pathname_copy[pathname_size] = '\0';
     // fill in message
@@ -563,7 +565,7 @@ int Seek(int fd, int offset, int whence) {
     TracePrintf(1, "Seek(): start fd %d, offset %d, whence %d\n", fd, offset, whence);
     if (open_files_flag == -1) { InitOpenfileVector(); }
 
-    if (0 < fd || fd >= MAX_OPEN_FILES) {
+    if (fd < 0 || fd >= MAX_OPEN_FILES) {
         TracePrintf(1, "Seek(): Invalid file descriptor %d\n", fd);
         return ERROR;
     }
@@ -639,11 +641,11 @@ int Link(char *oldname, char *newname) {
     char* newname_copy = (char*)malloc(newname_size + 2); // add "\0"
     memcpy(newname_copy, newname, newname_size);
     if (newname[oldname_size-1] == '/') {
-        newname_copy[oldname_size] = '.';
-        newname_copy[oldname_size+1] = '\0';
+        newname_copy[newname_size] = '.';
+        newname_copy[newname_size+1] = '\0';
     }
     else {
-        newname_copy[oldname_size] = '\0';
+        newname_copy[newname_size] = '\0';
     }
 
     char message[MESSAGE_SIZE];

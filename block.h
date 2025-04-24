@@ -21,18 +21,8 @@
 #define INODE_IN_BLOCK_ADDR(inodeNum) (((inodeNum) % (BLOCKSIZE / INODESIZE)) * INODESIZE)
 
 #define HASH_TABLE_SIZE 256
-/*
-struct inode {
-    short type;			// file type (e.g., directory or regular) 
-    short nlink;		// number of hard links to inode 
-    int   reuse;		// inode reuse count 
-    int   size;			// file size in bytes 
-    int   direct[NUM_DIRECT];	// block numbers for 1st NUM_DIRECT blocks 
-    int   indirect;		// block number of indirect block 
-};
-*/
 
-// all run in yfs
+
 
 int NUM_BLOCKS;
 int NUM_INODES;
