@@ -198,7 +198,7 @@ int addEntry(short inum, struct dir_entry new_entry) {
     // get the prent inode
     INODE_INFO *inode_info = get_use_inode(inum);
     if (inode_info == NULL) {
-        TracePrintf(1, "addEntry() cannot get inode!\n");
+        TracePrintf(1, "addEntry() error in getting info!\n");
         return ERROR;
     }
     if (inode_info->val->type != INODE_DIRECTORY) {
@@ -267,7 +267,9 @@ short createFile(char *filename, short parent_inum, int file_type) {
     new_inode_info->val->size = 0;
     new_inode_info->val->reuse++;
     if (addEntry(parent_inum, new_entry) == -1) {
+        new_inode_info->val->reuse--;
         set_bitmap_free(inode_bitmap, new_inode_info->inodeNum,  NUM_INODES);
+        new_inode_info->inodeNum = -1;
         return ERROR;
     }
 
@@ -282,9 +284,31 @@ int MessageHandler(char *msg, int pid)
     {
     case CALL_OPEN:
         /* code */
+        void    *pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+        res = OpenHandler(pathname,cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "OpenHandler() error!\n");
+        }
+        free(pathname);
         break;
     case CALL_CREATE:
         /* code */
+        void    *pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+        res = CreateHandler(pathname, cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "CreateHandler() error!\n");
+        }
+        free(pathname);
         break;
     case CALL_READ:
         short   inum = *(short*)(msg+1);
@@ -379,7 +403,7 @@ int CreateHandler(char *pathname, short cur_dir_idx)
     }
     char* filename = getFilename(pathname);
 
-    return 0;
+    return createFile(filename, parent_inum, INODE_REGULAR);
 }
 
 int ReadHandler(short inum, int position, void *buf, int size)
@@ -504,6 +528,46 @@ int WriteHandler(short inum, int position, void *buf, int size)
     return total_write_count;
 }
 
+int LinkHandler(char *oldname, char *newname, short cur_dir_idx)
+{
+    // The file oldname must not be a directory. 
+    short old_inum = resolvePath(oldname, cur_dir_idx);
+    if (old_inum == -1) {
+        TracePrintf(1,"LinkHandler() error in resolve oldname path\n");
+        return ERROR;
+    }
+    else if (old_inum == 0) {
+        TracePrintf(1,"LinkHandler() oldname does not exist\n");
+        return ERROR;
+    }
+    INODE_INFO *old_info = get_use_inode(old_inum);
+    if (old_info == NULL) {
+        TracePrintf(1,"LinkHandler() error in getting info\n");
+        return ERROR;
+    }
+    if (old_info->val->type == INODE_DIRECTORY) {
+        TracePrintf(1,"LinkHandler() oldname is a directory\n");
+        return ERROR;
+    }
+    // It is an error if the file newname already exists. 
+    short new_inum = resolvePath(newname, cur_dir_idx);
+    if (new_inum == -1) {
+        TracePrintf(1,"LinkHandler() error in resolve newname path\n");
+        return ERROR;
+    }
+    else if (new_inum > 0) {
+        TracePrintf(1,"LinkHandler() newname already exists\n");
+        return ERROR;
+    }
+
+    // On success, this request returns 0; on
+    // any error, the value ERRORis returned.
+    short parent_inum = getParentInum(newname, cur_dir_idx);
+    char* filename = getFilename(newname);
+    addEntry(parent_inum, createEntry(old_inum, filename));
+    return 0;
+}
+
 int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
 {   
     /*
@@ -515,6 +579,20 @@ int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
         - create a new file under parent_dir
         - store(wtite) the oldname in newname's file // %$%
     */
+    
+    short parent_inum = getParentInum(newname, cur_dir_idx);
+    char* filename = getFilename(newname);
+    short inum = create_file(filename, parent_inum, INODE_SYMLINK);
+    if(inum == ERROR) {
+        TracePrintf(1,"SymLinkHandler()  fail to create symlink\n");
+        return ERROR; 
+    }
+
+    if (WriteHandler(inum, 0, oldname, strlen(oldname)) == -1) {
+        TracePrintf(1,"SymLinkHandler()  write oldname error\n");
+        return ERROR; 
+    }
+
     return 0;
 }
 
@@ -543,6 +621,20 @@ int MkDirHandler(char *pathname, short cur_dir_idx)
         - create a new file under parent_dir
         - add dir_entries of ".", ".." to the new index node
     */
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"CreateHandler() cannot find parent inode\n");
+        return ERROR;
+    }
+    char* filename = getFilename(pathname);
+    short inum = createFile(filename, parent_inum, INODE_DIRECTORY);
+    if(inum == ERROR) { 
+        TracePrintf(1,"MkDirHandler()  fail to create directory\n");
+        return ERROR; 
+    }
+
+    addEntry(inum, createEntry(inum, "."));
+    addEntry(inum, createEntry(parent_inum, ".."));
     return 0;
 }
 
@@ -582,6 +674,22 @@ int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx)
             handle error
         - fill index, type, size, nlink to statbuf
     */
+    short inum = resolvePath(pathname, cur_dir_idx);
+    if (inum <= 0) {
+        TracePrintf(1,"StatHandler()  error in resolve path or file not exist\n");
+        return ERROR; 
+    }
+
+    INODE_INFO *cur_node_info = get_use_inode(inum);
+    if (cur_node_info == NULL) {
+        TracePrintf(1,"StatHandler()  error in getting info\n");
+        return ERROR; 
+    }
+    statbuf->inum = cur_node_info->inodeNum;
+    statbuf->nlink = cur_node_info->val->nlink;
+    statbuf->size = cur_node_info->val->size;
+    statbuf->type = cur_node_info->val->type;
+
     return 0;
 }
 
