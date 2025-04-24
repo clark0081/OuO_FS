@@ -282,6 +282,7 @@ int MessageHandler(char *msg, int pid)
 {
     int code = (unsigned char)msg[0];
     int res = 0;
+    TracePrintf(1, " code %d\n", code);
     switch (code)
     {
     case CALL_OPEN: {
@@ -1067,6 +1068,7 @@ int main(int argc, char** argv) {
     int pid = Fork();
     if (pid == 0) {
         // child process
+        TracePrintf(0, "child start\n");
         Exec(argv[1], argv + 1);
     }
     else {
@@ -1075,12 +1077,12 @@ int main(int argc, char** argv) {
             int pid = Receive(msg);
             if (pid == 0) {
                 // deadlock
-                TracePrintf(0, "Receive() return 0 to avoid deadlock");
+                TracePrintf(0, "Receive() return 0 to avoid deadlock\n");
                 Exit(0);
             }
             else if (pid == -1) {
                 // error
-                TracePrintf(0, "Receive() return -1 due to error");
+                TracePrintf(0, "Receive() return -1 due to error\n");
                 Exit(0);
             }
             int res = MessageHandler(msg, pid); // pid for using CopyFrom()/ CopyTo()

@@ -1,15 +1,17 @@
 #include <comp421/yalnix.h>
 #include <comp421/iolib.h>
-
+#include<stdio.h>
 int
 main()
 {
 	int fd;
-
+	printf("1\n");
 	fd = Create("a");
+	printf("2\n");
 	Write(fd, "aaaaaaaaaaaaaaaa", 16);
+	printf("3\n");
 	Close(fd);
-
+	printf("4\n");
 	fd = Create("b");
 	Write(fd, "bbbbbbbbbbbbbbbb", 16);
 	Close(fd);
