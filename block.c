@@ -229,24 +229,24 @@ void insert_block_hashTable(int key, BLOCK_INFO* val) {
     block_hashtable[index] = new_wrap;
 }
 
-INODE_INFO* search_inode_hashTable(int key) {
+INODE_WRAP* search_inode_hashTable(int key) {
     int index = hash_key(key);
     INODE_WRAP* current = inode_hashtable[index];
     while (current != NULL) {
         if (current->key == key) {
-            return current->value;  
+            return current;  
         }
         current = current->next;
     }
     return NULL;  
 }
 
-BLOCK_INFO* search_block_hashTable(int key) {
+BLOCK_WRAP* search_block_hashTable(int key) {
     int index = hash_key(key);
     BLOCK_WRAP* current = block_hashtable[index];
     while (current != NULL) {
         if (current->key == key) {
-            return current->value;  
+            return current;  
         }
         current = current->next;
     }

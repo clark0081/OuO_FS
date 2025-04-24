@@ -84,8 +84,8 @@ struct block_info* get_block(int);
 
 void insert_inode_hashTable(int , INODE_INFO* );
 void insert_block_hashTable(int , BLOCK_INFO* );
-INODE_INFO* search_inode_hashTable(int);
-BLOCK_INFO* search_block_hashTable(int);
+INODE_WRAP* search_inode_hashTable(int);
+BLOCK_WRAP* search_block_hashTable(int);
 void delete_inode_hashTable(int);
 void delete_block_hashTable(int);
 void clear_inode_block_hashTable();
