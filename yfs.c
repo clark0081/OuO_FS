@@ -4,8 +4,12 @@
 #include <string.h>
 
 
+//TODO
+// 1. fix reuse
+// 2. MAXPATHNAMELEN
+
 short findInumInDir(char * filename, short dir) {
-    struct inode_info* dir_inode = get_inode(dir);
+    struct inode_info* dir_inode = get_use_inode(dir);
     // TODO: handle invalud dir_inode
 
     
@@ -88,7 +92,7 @@ short resolvePath(char *pathname, short cur_dir_in) {
             TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s\n", node_name, cur_dir, org_pathname);
             return ERROR;
         }
-        INODE_INFO* next_inode_info = get_inode(inum);
+        INODE_INFO* next_inode_info = get_use_inode(inum);
 
         if (next_inode_info->val->type == INODE_SYMLINK) {
             if(symlink_count >= MAXSYMLINKS) {
@@ -409,6 +413,16 @@ int CreateHandler(char *pathname, short cur_dir_idx)
 
 int ReadHandler(short inum, int position, void *buf, int size)
 {
+    // This request reads data from an open file, beginning at the current position in the file as represented by the given file descriptor fd. 
+    // The argument fd specifies the file descriptor number of the file to be read, buf specifies the address of the buffer in the requesting process 
+    // into which to perform the read, and size is the number of bytes to be read from the file. 
+    // This request returns the number of bytes read, which will be 0 if reading at the end-of-file; 
+    // the number of bytes read will be the minimum of the number of bytes requested and the number of bytes remaining in the file before the end-of-file. 
+    // Upon successful completion, the current position in the file as represented by the given file descriptor fd should be advanced by the number of bytes read, 
+    // and only this number of bytes within the caller’s buf should be modified (bytes beyond this count must remain unchanged). 
+    // On any error, this call should return ERROR. It is not an error to attempt to Read() from a file descriptor that is open on a directory. 
+    // Unless this Read operation returns ERROR, the current position for subsequent Read or Write operations on this file descriptor 
+    // advances by the number of bytes read (the value returned by the Read request).
     INODE_INFO *cur_inode_info = get_use_inode(inum);
     if (cur_inode_info == NULL) {
         TracePrintf(1,"ReadHandler() cannot find inode\n");
@@ -613,7 +627,49 @@ int ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx)
         
         
     */
-    return 0;
+    // This request reads the name of the file that the symbolic link pathname is linked to; 
+    // the named pathname must be that of a symbolic link. 
+    // On success, this request returns the length (number of characters) of the name that the symbolic link pathname points to 
+    // (or the value len, whichever is smaller), and places in the buffer beginning with address buf the name that the symbolic link points to, 
+    // up to a maximum number of characters of len characters; 
+    // if the name that the symbolic link points to is longer than len bytes, 
+    // the name is truncated as returned in the buffer buf (this is not an error). 
+    // The characters placed into buf are not terminated by a ’\0’ character. 
+    // On any error, the value ERROR is returned.
+
+
+    size_t len = strlen(pathname);
+    int need_dot = (len > 0 && pathname[len - 1] == '/');
+
+    size_t new_len = len + (need_dot ? 1 : 0) + 1;
+    char* new_path = (char*)malloc(new_len);
+
+    if (!new_path) {
+        TracePrintf(0, "in ReadLinkHandler()... malloc failed\n");
+        perror("malloc failed");
+        return ERROR;
+    }
+    strcpy(new_path, pathname);  
+    if (need_dot) {
+        new_path[len] = '.';     
+        new_path[len + 1] = '\0';
+    }
+    short inodeNum = resolvePath(new_path, cur_dir_idx);
+    INODE_INFO* info = get_use_inode(inodeNum);
+    if(info->val->type != INODE_SYMLINK){
+        TracePrintf(0, "in ReadLinkHandler()...not a symlink\n");
+        free(new_path);
+        return ERROR;
+    }
+    free(new_path);
+    return ReadHandler(inodeNum, 0, buf, len);
+    //TODO why?
+    /*
+    short parent_inum = getParentInum(new_path, cur_dir_idx);
+    char* filename = get_filename(new_path);
+    short inum = findInumInDir(filename,parent_inum);
+    return ReadHandler(inum, 0, buf, len);
+    */
 }
 
 int MkDirHandler(char *pathname, short cur_dir_idx)
@@ -688,7 +744,7 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
         free(new_path);
         return ERROR;
     }
-    INODE_INFO* info = get_inode(inodeNum);
+    INODE_INFO* info = get_use_inode(inodeNum);
     if(info->val->type != INODE_DIRECTORY){
         TracePrintf(0, "in RmDirHandler()...not a directory\n");
         free(new_path);
@@ -712,7 +768,7 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
         return ERROR;
     }
     ///////////////////////////////
-    INODE_INFO* parent_info = get_inode(parent_inodeNum);
+    INODE_INFO* parent_info = get_use_inode(parent_inodeNum);
     if(parent_info->inodeNum == -1){
         TracePrintf(0, "in RmDirHandler()...cannot find parent inode\n");
         free(new_path);
@@ -771,7 +827,7 @@ int ChDirHandler(char *pathname, short cur_dir_idx)
         free(new_path);
         return ERROR;
     }
-    INODE_INFO* info = get_inode(inodeNum);
+    INODE_INFO* info = get_use_inode(inodeNum);
     if(info->val->type != INODE_DIRECTORY){
         TracePrintf(0, "in ChDirHandler()...not a directory\n");
         free(new_path);
@@ -825,7 +881,7 @@ int ShutdownHandler()
 }
 
 int SeekHandler(short inodeNum){
-    INODE_INFO* info = get_inode(inodeNum);
+    INODE_INFO* info = get_use_inode(inodeNum);
     if(info->inodeNum == -1){
 	    TracePrintf(0, "in SeekHandler...inode number is 0\n");
 	    return ERROR;
