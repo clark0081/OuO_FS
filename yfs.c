@@ -10,9 +10,11 @@
 
 short findInumInDir(char * filename, short dir) {
     struct inode_info* dir_inode = get_use_inode(dir);
-    // TODO: handle invalud dir_inode
+    if (dir_inode == NULL) {
+        TracePrintf(1, "findInumInDir() cannot get inode for %s\n", filename);
+        return ERROR;
+    }
 
-    
     // int numEntries = info->inodeVal->size / sizeof(struct dir_entry);
     int n = dir_inode->val->size / sizeof(struct dir_entry);
     int i;
@@ -228,7 +230,7 @@ int addEntry(short inum, struct dir_entry new_entry) {
             TracePrintf(1, "addEntry() ReadHandler error!\n");
             return ERROR;
         }
-        if (entry.inum == 0) { // TODO sync with rmdir
+        if (entry.inum == 0) {
             break;
         }
         cur_pos += sizeof(struct dir_entry);
@@ -395,11 +397,17 @@ int MessageHandler(char *msg, int pid)
 
 int OpenHandler(char *pathname, short cur_dir_idx)
 {
-    return resolvePath(pathname,cur_dir_idx);
+    return resolvePath(pathname, cur_dir_idx);
+    
 }
 
 int CreateHandler(char *pathname, short cur_dir_idx)
 {
+    if (pathname[strlen(pathname) - 1] == '/') {
+        TracePrintf(1,"CreateHandler() path name should not end with \'/\' \n");
+        return ERROR;
+    }
+
     short parent_inum = getParentInum(pathname, cur_dir_idx);
     if (parent_inum == -1) {
         TracePrintf(1,"CreateHandler() cannot find parent inode\n");
@@ -451,13 +459,11 @@ int ReadHandler(short inum, int position, void *buf, int size)
             if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
-            // TODO: handle error
 
             int *indirect_blocks = (int *)indirectbinfo->data;
             int bnum = indirect_blocks[block_num - NUM_DIRECT];
 
             BLOCK_INFO *binfo = get_block(bnum);
-            // TODO: handle error
             
             block_content = &binfo->data[block_offset];
         }
@@ -508,7 +514,6 @@ int WriteHandler(short inum, int position, void *buf, int size)
             // direct block
             // get block node using inode->direct[blocknum]
             BLOCK_INFO *binfo = get_block(cur_inode->direct[block_num]);
-            // TODO: handle error
 
             binfo->isDirty = 1;
             block_content = &binfo->data[block_offset];
@@ -518,13 +523,11 @@ int WriteHandler(short inum, int position, void *buf, int size)
             if (block_num >= NUM_DIRECT + BLOCKSIZE/sizeof(int)) { return ERROR;} 
             // get block node using inode->indirect
             BLOCK_INFO *indirectbinfo = get_block(cur_inode->indirect);
-            // TODO: handle error
 
             int *indirect_blocks = (int *)indirectbinfo->data;
             int bnum = indirect_blocks[block_num - NUM_DIRECT];
 
             BLOCK_INFO *binfo = get_block(bnum);
-            // TODO: handle error
 
             binfo->isDirty = 1;
             block_content = &binfo->data[block_offset];
@@ -593,6 +596,7 @@ int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
         - create a new file under parent_dir
         - store(wtite) the oldname in newname's file // %$%
     */
+
     
     short parent_inum = getParentInum(newname, cur_dir_idx);
     char* filename = getFilename(newname);
@@ -636,39 +640,11 @@ int ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx)
     // The characters placed into buf are not terminated by a �\0� character. 
     // On any error, the value ERROR is returned.
 
-
-    size_t len = strlen(pathname);
-    int need_dot = (len > 0 && pathname[len - 1] == '/');
-
-    size_t new_len = len + (need_dot ? 1 : 0) + 1;
-    char* new_path = (char*)malloc(new_len);
-
-    if (!new_path) {
-        TracePrintf(0, "in ReadLinkHandler()... malloc failed\n");
-        perror("malloc failed");
-        return ERROR;
-    }
-    strcpy(new_path, pathname);  
-    if (need_dot) {
-        new_path[len] = '.';     
-        new_path[len + 1] = '\0';
-    }
-    short inodeNum = resolvePath(new_path, cur_dir_idx);
-    INODE_INFO* info = get_use_inode(inodeNum);
-    if(info->val->type != INODE_SYMLINK){
-        TracePrintf(0, "in ReadLinkHandler()...not a symlink\n");
-        free(new_path);
-        return ERROR;
-    }
-    free(new_path);
-    return ReadHandler(inodeNum, 0, buf, len);
-    //TODO why?
-    /*
-    short parent_inum = getParentInum(new_path, cur_dir_idx);
-    char* filename = get_filename(new_path);
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    char* filename = getFilename(pathname);
     short inum = findInumInDir(filename,parent_inum);
     return ReadHandler(inum, 0, buf, len);
-    */
+    
 }
 
 int MkDirHandler(char *pathname, short cur_dir_idx)
@@ -794,6 +770,7 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
 }
 
 int UnlinkHandler(char* pathname, short cur_dir_idx) {
+
     short parent_inum = getParentInum(pathname, cur_dir_idx);
     if (parent_inum == -1) {
         TracePrintf(1,"UnlinkHandler() cannot find parent inode\n");

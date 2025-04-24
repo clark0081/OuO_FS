@@ -52,9 +52,15 @@ int Open(char *pathname) {
         4. the inum of process current directory    2
     */
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
     // fill in message
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_CREATE;
@@ -268,14 +274,26 @@ int SymLink(char *oldname, char *newname) {
         6. the inum of cur dir      2
     */
     int oldname_size = strlen(oldname);
-    char* oldname_copy = (char*)malloc(oldname_size + 1); // add "\0"
+    char* oldname_copy = (char*)malloc(oldname_size + 2); // add "\0"
     memcpy(oldname_copy, oldname, oldname_size);
-    oldname_copy[oldname_size] = '\0';
+    if (oldname[oldname_size-1] == '/') {
+        oldname_copy[oldname_size] = '.';
+        oldname_copy[oldname_size+1] = '\0';
+    }
+    else {
+        oldname_copy[oldname_size] = '\0';
+    }
 
     int newname_size = strlen(newname);
-    char* newname_copy = (char*)malloc(newname_size + 1); // add "\0"
+    char* newname_copy = (char*)malloc(newname_size + 2); // add "\0"
     memcpy(newname_copy, newname, newname_size);
-    newname_copy[newname_size] = '\0';
+    if (newname[oldname_size-1] == '/') {
+        newname_copy[oldname_size] = '.';
+        newname_copy[oldname_size+1] = '\0';
+    }
+    else {
+        newname_copy[oldname_size] = '\0';
+    }
 
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_SYMLINK;
@@ -303,9 +321,15 @@ int ReadLink(char *pathname, char *buf, int len) {
     TracePrintf(1, "Readlink(): start pathname, %s\n", pathname);
     // pathname, pathname.size, buf, len
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
     /*
         message content
         1. CALL_READLINK            1
@@ -353,6 +377,9 @@ int MkDir(char *pathname) {
     int pathname_size = strlen(pathname);
     char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
+    if (pathname_size != 1 && pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size-1] == '/';
+    }
     pathname_copy[pathname_size] = '\0';
     // fill in message
     char message[MESSAGE_SIZE];
@@ -389,9 +416,15 @@ int RmDir(char *pathname) {
         4. the inum of cur dir      2
     */
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
     // fill in message
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_RMDIR;
@@ -426,9 +459,15 @@ int ChDir(char *pathname) {
     */
     // handle "aa/bb/" -> "aa/bb/."
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
     // fill in message
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_CHDIR;
@@ -462,9 +501,15 @@ int Stat(char *pathname, struct Stat *statbuf) {
     */
     // do i need to handle "aa/bb/" -> "aa/bb/."?
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
 
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_STAT;
@@ -579,14 +624,27 @@ int Link(char *oldname, char *newname) {
         6. the inum of cur dir      2
     */
     int oldname_size = strlen(oldname);
-    char* oldname_copy = (char*)malloc(oldname_size + 1); // add "\0"
+    char* oldname_copy = (char*)malloc(oldname_size + 2); // add "\0"
     memcpy(oldname_copy, oldname, oldname_size);
-    oldname_copy[oldname_size] = '\0';
+    if (oldname[oldname_size-1] == '/') {
+        oldname_copy[oldname_size] = '.';
+        oldname_copy[oldname_size+1] = '\0';
+    }
+    else {
+        oldname_copy[oldname_size] = '\0';
+    }
+    
 
     int newname_size = strlen(newname);
-    char* newname_copy = (char*)malloc(newname_size + 1); // add "\0"
+    char* newname_copy = (char*)malloc(newname_size + 2); // add "\0"
     memcpy(newname_copy, newname, newname_size);
-    newname_copy[newname_size] = '\0';
+    if (newname[oldname_size-1] == '/') {
+        newname_copy[oldname_size] = '.';
+        newname_copy[oldname_size+1] = '\0';
+    }
+    else {
+        newname_copy[oldname_size] = '\0';
+    }
 
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_LINK;
@@ -620,9 +678,15 @@ int Unlink(char *pathname) {
         4. the inum of cur dir      2
     */
     int pathname_size = strlen(pathname);
-    char* pathname_copy = (char*)malloc(pathname_size + 1); // add "\0"
+    char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
     memcpy(pathname_copy, pathname, pathname_size);
-    pathname_copy[pathname_size] = '\0';
+    if (pathname[pathname_size-1] == '/') {
+        pathname_copy[pathname_size] = '.';
+        pathname_copy[pathname_size+1] = '\0';
+    }
+    else {
+        pathname_copy[pathname_size] = '\0';
+    }
     // fill in message
     char message[MESSAGE_SIZE];
     message[0] = (char)CALL_UNLINK;
