@@ -1,6 +1,7 @@
 #include "yfs.h"
 #include "block.h"
 #include "lrucache.h"
+#include <string.h>
 
 
 short findInumInDir(char * filename, short dir) {
@@ -562,6 +563,86 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
             clean parent
             free this file
     */
+    // This request deletes the existing directory named pathname. 
+    // The directory must contain no directory entries other than the ¡§.¡¨ and ¡§..¡¨ 
+    // entries and possibly some free entries. 
+    // On success, this request returns 0; 
+    // on any error, the value ERROR is returned. 
+    // Note that it is an error to attempt to remove the root directory; 
+    // it is also an error to attempt to remove individually the ¡§.¡¨ or ¡§..¡¨ entry from a directory.
+    if(strcmp(pathname, "/") || strcmp(pathname, ".") || strcmp(pathname, "..") == 0){
+        TracePrintf(0, "in RmDirHandler()...attempting to remove root or . or ..\n");
+        return ERROR;
+    }
+    size_t len = strlen(pathname);
+    int need_dot = (len > 0 && pathname[len - 1] == '/');
+
+    size_t new_len = len + (need_dot ? 1 : 0) + 1;
+    char* new_path = (char*)malloc(new_len);
+
+    if (!new_path) {
+        TracePrintf(0, "in RmDirHandler()... malloc failed\n");
+        perror("malloc failed");
+        return ERROR;
+    }
+    strcpy(new_path, pathname);  
+    if (need_dot) {
+        new_path[len] = '.';     
+        new_path[len + 1] = '\0';
+    }
+    short inodeNum = resolvePath(new_path, cur_dir_idx);
+    if(inodeNum == -1){
+        TracePrintf(0, "in RmDirHandler()...resolvePath failed\n");
+        free(new_path);
+        return ERROR;
+    }
+    INODE_INFO* info = get_inode(inodeNum);
+    if(info->val->type != INODE_DIRECTORY){
+        TracePrintf(0, "in RmDirHandler()...not a directory\n");
+        free(new_path);
+        return ERROR;
+    }
+
+    int i;
+    for(i = 2; i < info->val->size / sizeof(struct dir_entry); i++){
+	    struct dir_entry entry;
+        ReadHandler(inodeNum, i * sizeof(entry), (void*)&entry, sizeof(entry));
+	    if(entry.inum != 0){
+            TracePrintf(0, "in RmDirHandler()...directory is not empty\n");
+            free(new_path);
+	        return ERROR;
+	    }
+    }
+    short parent_inodeNum = getParentInum(new_path, cur_dir_idx);
+    if(parent_inodeNum == -1){
+        TracePrintf(0, "in RmDirHandler()...getParentInum fail\n");
+        free(new_path);
+        return ERROR;
+    }
+    ///////////////////////////////
+    INODE_INFO* parent_info = get_inode(parent_inodeNum);
+    if(parent_info->inodeNum == -1){
+        TracePrintf(0, "in RmDirHandler()...cannot find parent inode\n");
+        free(new_path);
+        return ERROR;
+    }
+    struct dir_entry entry;
+    for(i = 2; i < (parent_info->val->size / sizeof(struct dir_entry)); i++){
+	    if(ReadHandler(parent_inodeNum, i * sizeof(entry), (void*)&entry, sizeof(entry)) == -1){
+            TracePrintf(0, "in RmDirHandler()...cannot find entry parent inode\n");
+            free(new_path);
+	        return ERROR;
+	    }
+	    if(inodeNum == entry.inum){
+	        struct dir_entry remove = createEntry(0, "\0");
+            WriteHandler(inodeNum, i * sizeof(struct dir_entry), &remove, sizeof(struct dir_entry));
+            info->val->type = INODE_FREE;    
+            set_bitmap_free(inode_bitmap, inodeNum, NUM_INODES);
+            info->isDirty = 1;
+	        break;
+	    }
+    }
+    free(new_path);
     return 0;
 }
 
@@ -572,6 +653,38 @@ int ChDirHandler(char *pathname, short cur_dir_idx)
             handle error
         - return node's index
     */
+    // This request changes the current directory within the requesting process to be the directory indicated by pathname . 
+    // The current directory of a process should be remembered by the inode number of that directory, within the file system library in that process. 
+    // That current directory inode number should then be passed to the file server on each request that takes any file name arguments. 
+    // The file pathname on this request must be a directory. On success, this request returns 0; on any error, the value ERROR is returned.
+    size_t len = strlen(pathname);
+    int need_dot = (len > 0 && pathname[len - 1] == '/');
+
+    size_t new_len = len + (need_dot ? 1 : 0) + 1;
+    char* new_path = (char*)malloc(new_len);
+
+    if (!new_path) {
+        TracePrintf(0, "in ChDirHandler()... malloc failed\n");
+        perror("malloc failed");
+        return ERROR;
+    }
+    strcpy(new_path, pathname);  
+    if (need_dot) {
+        new_path[len] = '.';     
+        new_path[len + 1] = '\0';
+    }
+    short inodeNum = resolvePath(new_path, cur_dir_idx);
+    if(inodeNum == -1){
+        TracePrintf(0, "in ChDirHandler()...resolvePath failed\n");
+        free(new_path);
+        return ERROR;
+    }
+    INODE_INFO* info = get_inode(inodeNum);
+    if(info->val->type != INODE_DIRECTORY){
+        TracePrintf(0, "in ChDirHandler()...not a directory\n");
+        free(new_path);
+        return ERROR;
+    }
     return 0;
 }
 
