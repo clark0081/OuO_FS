@@ -355,27 +355,132 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_LINK:
         /* code */
+        void* oldname_addr = *(void**)(msg + 1);
+        int     oldname_len = *(int*)(msg+9);
+        void* newname_addr = *(void**)(msg + 13);
+        int     newname_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+
+        char* oldname = (char*)malloc(oldname_len + 1);
+        CopyFrom(pid, (void*)oldname, oldname_addr, oldname_len);
+        oldname[oldname_len] = '\0';
+
+        char* newname = (char*)malloc(newname_len + 1);
+        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        newname[newname_len] = '\0';
+
+        res = LinkHandler(oldname, newname, cur_dir);
+        free(oldname);
+        free(newname);
         break;
     case CALL_UNLINK:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = UnlinkHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_SYMLINK:
-        /* code */
+        void* oldname_addr = *(void**)(msg + 1);
+        int     oldname_len = *(int*)(msg+9);
+        void* newname_addr = *(void**)(msg + 13);
+        int     newname_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+    
+        char* oldname = (char*)malloc(oldname_len + 1);
+        CopyFrom(pid, (void*)oldname, oldname_addr, oldname_len);
+        oldname[oldname_len] = '\0';
+
+        char* newname = (char*)malloc(newname_len + 1);
+        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        newname[newname_len] = '\0';
+
+        res = SymLinkHandler(oldname, newname, cur_dir);
+        free(oldname);
+        free(newname);
         break;
     case CALL_READLINK:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        void* buf_addr = *(void**)(msg + 13);
+        int     buf_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        void* tmp_buf = malloc(buf_len);
+        res = ReadLinkHandler(pathname,tmp_buf, buf_len, cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "ReadLinkHandler() error!\n");
+        }
+        else {
+            CopyTo(pid, buf, tmp_buf, res);
+        }
+        free(tmp_buf);
+        free(pathname);
         break;
     case CALL_MKDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = MkDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_RMDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = RmDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_CHDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = ChDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_STAT:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        void* stat_buf = *(void**)(msg + 13);
+        short   cur_dir = *(short*)(msg+21);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+        void* tmp_buf = malloc(sizeof(struct Stat));
+        res = StatHandler(pathname, tmp_buf, cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "StatHandler() error!\n");
+        }
+        else {
+            CopyTo(pid, stat_buf, tmp_buf, sizeof(struct Stat));
+        }
+        free(tmp_buf);
+        free(pathname);
         break;
     case CALL_SYNC:
         /* code */
