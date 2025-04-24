@@ -125,7 +125,7 @@ void enqueue_block(BLOCK_INFO* x){
     block_cache_len++;
 }
 void remove_queue_block(BLOCK_INFO* x){
-    if (x == NULL || x == inode_head || x == inode_tail) return; 
+    if (x == NULL || x == block_head || x == block_tail) return; 
     x->prev->next = x->next;
     x->next->prev = x->prev;
     x->next = NULL;
@@ -154,8 +154,8 @@ void clear_block_cache(){
         free(temp);
         block_cache_len--;
     }
-    block_head->next = inode_tail;
-    block_tail->prev = inode_head;
+    block_head->next = block_tail;
+    block_tail->prev = block_head;
 }
 /*
 void insert_inode_hashTable(int , INODE_INFO* );
