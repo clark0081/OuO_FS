@@ -27,10 +27,6 @@ short findInumInDir(char * filename, short dir) {
         }
 
         if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
-            // INODE_INFO* next_inode_info = get_inode(entry.inum);
-            // if (next_inode_info->val->type != INODE_DIRECTORY && next_inode_info->val->type != INODE_SYMLINK) {
-            //     continue;
-            // }
             TracePrintf(1, "findInumInDir() find %s with inum %d in directory %d\n", filename, entry.inum, dir);
             return entry.inum;
         }
@@ -355,27 +351,132 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_LINK:
         /* code */
+        void* oldname_addr = *(void**)(msg + 1);
+        int     oldname_len = *(int*)(msg+9);
+        void* newname_addr = *(void**)(msg + 13);
+        int     newname_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+
+        char* oldname = (char*)malloc(oldname_len + 1);
+        CopyFrom(pid, (void*)oldname, oldname_addr, oldname_len);
+        oldname[oldname_len] = '\0';
+
+        char* newname = (char*)malloc(newname_len + 1);
+        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        newname[newname_len] = '\0';
+
+        res = LinkHandler(oldname, newname, cur_dir);
+        free(oldname);
+        free(newname);
         break;
     case CALL_UNLINK:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = UnlinkHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_SYMLINK:
-        /* code */
+        void* oldname_addr = *(void**)(msg + 1);
+        int     oldname_len = *(int*)(msg+9);
+        void* newname_addr = *(void**)(msg + 13);
+        int     newname_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+    
+        char* oldname = (char*)malloc(oldname_len + 1);
+        CopyFrom(pid, (void*)oldname, oldname_addr, oldname_len);
+        oldname[oldname_len] = '\0';
+
+        char* newname = (char*)malloc(newname_len + 1);
+        CopyFrom(pid, (void*)oldname, newname_addr, newname_len);
+        newname[newname_len] = '\0';
+
+        res = SymLinkHandler(oldname, newname, cur_dir);
+        free(oldname);
+        free(newname);
         break;
     case CALL_READLINK:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        void* buf_addr = *(void**)(msg + 13);
+        int     buf_len = *(int*)(msg+21);
+        short   cur_dir = *(short*)(msg+25);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        void* tmp_buf = malloc(buf_len);
+        res = ReadLinkHandler(pathname,tmp_buf, buf_len, cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "ReadLinkHandler() error!\n");
+        }
+        else {
+            CopyTo(pid, buf, tmp_buf, res);
+        }
+        free(tmp_buf);
+        free(pathname);
         break;
     case CALL_MKDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = MkDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_RMDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = RmDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_CHDIR:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        short   cur_dir = *(short*)(msg+13);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+
+        res = ChDirHandler(pathname, cur_dir);
+        free(pathname);
         break;
     case CALL_STAT:
-        /* code */
+        void* pathname_addr = *(void**)(msg + 1);
+        int     pathname_len = *(int*)(msg+9);
+        void* stat_buf = *(void**)(msg + 13);
+        short   cur_dir = *(short*)(msg+21);
+
+        char* pathname = (char*)malloc(pathname_len + 1);
+        CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
+        pathname[pathname_len] = '\0';
+        void* tmp_buf = malloc(sizeof(struct Stat));
+        res = StatHandler(pathname, tmp_buf, cur_dir);
+        if (res == -1) {
+            TracePrintf(1, "StatHandler() error!\n");
+        }
+        else {
+            CopyTo(pid, stat_buf, tmp_buf, sizeof(struct Stat));
+        }
+        free(tmp_buf);
+        free(pathname);
         break;
     case CALL_SYNC:
         /* code */
@@ -386,6 +487,24 @@ int MessageHandler(char *msg, int pid)
         break;
     case CALL_SHUTDOWN:
         /* code */
+        res = ShutdownHandler();
+        if (res == -1) {
+            TracePrintf(1, "ShutdownHandler() error!\n");
+        }
+	    if(res == 0){
+		
+		    int i;
+		    for(i = 0; i < MESSAGE_SIZE; i++){
+		        msg[i] = '\0';
+		    }
+		    memcpy(msg, &res, sizeof(res));
+		    Reply(msg, pid);      
+            printf("------------------------------------------------------------------\n");
+            printf("Shutdown request received. Terminating Yalnix File System....\n");
+            printf("GoodBye ~~(｡•́︿•̀｡)   \n");
+		    printf("------------------------------------------------------------------\n");
+		    Exit(0);
+	    }
         break;
     default:
         TracePrintf(1, "MessageHandler() Unrecognized code!\n");
@@ -599,7 +718,7 @@ int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
     
     short parent_inum = getParentInum(newname, cur_dir_idx);
     char* filename = getFilename(newname);
-    short inum = create_file(filename, parent_inum, INODE_SYMLINK);
+    short inum = createFile(filename, parent_inum, INODE_SYMLINK);
     if(inum == ERROR) {
         TracePrintf(1,"SymLinkHandler()  fail to create symlink\n");
         return ERROR; 
@@ -808,12 +927,6 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
     if (node_info->val->nlink <= 0) {
         // delete inode and block
         free_inode(inum);
-        // dirty
-        // inode, inode's block, 
-        // blocks in direct, indirect
-
-
-	    // break;
     }
 
     return 0;
@@ -853,12 +966,18 @@ int ChDirHandler(char *pathname, short cur_dir_idx)
         return ERROR;
     }
     INODE_INFO* info = get_use_inode(inodeNum);
+    if (info == NULL) {
+        TracePrintf(0, "in ChDirHandler() get node error\n");
+        free(new_path);
+        return ERROR;
+    }   
     if(info->val->type != INODE_DIRECTORY){
         TracePrintf(0, "in ChDirHandler()...not a directory\n");
         free(new_path);
         return ERROR;
     }
-    return 0;
+    free(new_path);
+    return info->inodeNum;
 }
 
 int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx)
