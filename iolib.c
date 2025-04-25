@@ -45,6 +45,11 @@ int Open(char *pathname) {
         TracePrintf(1, "Open(): Reach MAX_OPEN_FILES!\n");
         return ERROR;
     }
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     
     /*    
         message content
@@ -126,7 +131,11 @@ int Create(char *pathname) {
         TracePrintf(1, "Create(): Reach MAX_OPEN_FILES!\n");
         return ERROR;
     }
-
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     /*
         "aa/bb/cc"
         in yfs
@@ -275,6 +284,19 @@ int SymLink(char *oldname, char *newname) {
         5. the size of newname      4      
         6. the inum of cur dir      2
     */
+
+    size_t len1 = strlen(oldname) + 1;  
+    if (len1 > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: oldname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len1);
+        return ERROR;
+    }
+
+    size_t len2 = strlen(newname) + 1;  
+    if (len2 > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: newname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len2);
+        return ERROR;
+    }
+
     int oldname_size = strlen(oldname);
     char* oldname_copy = (char*)malloc(oldname_size + 2); // add "\0"
     memcpy(oldname_copy, oldname, oldname_size);
@@ -321,6 +343,15 @@ int SymLink(char *oldname, char *newname) {
 
 int ReadLink(char *pathname, char *buf, int len) {
     TracePrintf(1, "Readlink(): start pathname, %s\n", pathname);
+
+
+    size_t len1 = strlen(pathname) + 1;  
+    if (len1 > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len1);
+        return ERROR;
+    }
+
+
     // pathname, pathname.size, buf, len
     int pathname_size = strlen(pathname);
     char* pathname_copy = (char*)malloc(pathname_size + 2); // add "\0"
@@ -365,6 +396,12 @@ int ReadLink(char *pathname, char *buf, int len) {
 
 int MkDir(char *pathname) {
     TracePrintf(1, "MkDir(): start pathname, %s\n", pathname);
+
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     // pathname, pathname.size
     /*
         (o) mkdir tt    create tt
@@ -405,6 +442,11 @@ int MkDir(char *pathname) {
 
 int RmDir(char *pathname) {
     TracePrintf(1, "RmDir(): start pathname, %s\n", pathname);
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     // rm: "." and ".." may not be removed
     /*
         (x) rm -r tt/.
@@ -449,6 +491,12 @@ int RmDir(char *pathname) {
 
 int ChDir(char *pathname) {
     TracePrintf(1, "ChDir(): start pathname, %s\n", pathname);
+
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     /*
         (o) cd tt
         (o) cd tt/
@@ -493,6 +541,11 @@ int ChDir(char *pathname) {
 
 int Stat(char *pathname, struct Stat *statbuf) {
     TracePrintf(1, "Stat(): start pathname, %s\n", pathname);
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     /*
         message content
         1. CALL_STAT                1
@@ -616,6 +669,17 @@ int Seek(int fd, int offset, int whence) {
 
 int Link(char *oldname, char *newname) {
     TracePrintf(1, "Link(): start old %s, new %s\n", oldname, newname);
+    size_t len1 = strlen(oldname) + 1;  
+    if (len1 > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: oldname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len1);
+        return ERROR;
+    }
+
+    size_t len2 = strlen(newname) + 1;  
+    if (len2 > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: newname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len2);
+        return ERROR;
+    }
     /*
         message content
         1. CALL_LINK                1                  
@@ -672,6 +736,11 @@ int Link(char *oldname, char *newname) {
 
 int Unlink(char *pathname) {
     TracePrintf(1, "Unlink(): start pathname, %s\n", pathname);
+    size_t len = strlen(pathname) + 1;  
+    if (len > MAXPATHNAMELEN) {
+        TracePrintf(1,"Error: pathname exceeds MAXPATHNAMELEN (%d). Length is %zu.\n", MAXPATHNAMELEN, len);
+        return ERROR;
+    }
     /*
         message content
         1. CALL_UNLINK              1

@@ -519,4 +519,15 @@ int sync() {
         cur_block = cur_block->next;
     }
     return 0;
-  }
+}
+
+void print_bitmap(unsigned char* bitmap, int len_bits) {
+    for (int i = 0; i < len_bits; i++) {
+        int byte_idx = i / 8;
+        int bit_idx = i % 8;
+        int bit = (bitmap[byte_idx] >> bit_idx) & 1;
+        printf("%d", bit);
+        if ((i + 1) % 8 == 0) printf(" "); 
+    }
+    printf("\n");
+}
