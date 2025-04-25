@@ -33,8 +33,8 @@
 # 	samples/writeread samples/tsymlink samples/tls samples/sample1 samples/sample2 
 # TEST = samples/writeread 
 # TEST = samples/sample1 samples/sample2
-TEST = samples/tsymlink
-# TEST = samples/tls
+# TEST = samples/tsymlink
+TEST = samples/tls samples/sample1
 
 
 #

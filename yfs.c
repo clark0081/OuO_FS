@@ -1039,10 +1039,23 @@ int StatHandler(char *pathname, struct Stat *statbuf, short cur_dir_idx)
             handle error
         - fill index, type, size, nlink to statbuf
     */
-    short inum = resolvePath(pathname, cur_dir_idx);
-    if (inum <= 0) {
-        TracePrintf(1,"StatHandler()  error in resolve path or file not exist\n");
-        return ERROR; 
+    // short inum = resolvePath(pathname, cur_dir_idx);
+    // if (inum <= 0) {
+    //     TracePrintf(1,"StatHandler()  error in resolve path or file not exist\n");
+    //     return ERROR; 
+    // }
+
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"StatHandler() cannot find parent inode\n");
+        return ERROR;
+    }
+    
+    char* filename = getFilename(pathname);
+    short inum = findInumInDir(filename, parent_inum);
+    if (inum == -1) {
+        TracePrintf(1,"StatHandler() cannot find inode\n");
+        return ERROR;
     }
 
     INODE_INFO *cur_node_info = get_use_inode(inum);

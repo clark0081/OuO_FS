@@ -34,6 +34,9 @@ main()
 	Write(fd, "zzzzzzzzzzzzzzzz", 16);
 	Close(fd);
 
+	int status = SymLink("/a", "/dir/sym");
+	printf("SymLink status %d\n", status);
+
 	Shutdown();
 
     return (0);
