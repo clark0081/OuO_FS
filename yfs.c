@@ -254,7 +254,10 @@ short createFile(char *filename, short parent_inum, int file_type) {
     }
     else if (exist_inum > 0) {
         TracePrintf(1, "createFile() filename already exist\n");
-        return ERROR;
+        // return ERROR;
+        INODE_INFO *exist_inode_info = get_use_inode(exist_inum);
+        exist_inode_info->val->size = 0;
+        return exist_inum;
     }
 
     INODE_INFO *new_inode_info = get_new_inode();
@@ -274,7 +277,7 @@ short createFile(char *filename, short parent_inum, int file_type) {
         free_inode(new_inode_info->inodeNum);
         return ERROR;
     }
-
+    TracePrintf(1, "createFile() create new inode! %d\n", new_inode_info->inodeNum);
     return new_inode_info->inodeNum; // inum
 }
 
@@ -1067,7 +1070,7 @@ int main(int argc, char** argv) {
     (void)argc;
     init_lru();
     init_inode_block();
-    
+    Register(FILE_SERVER);
     
     int pid = Fork();
     if (pid == 0) {
