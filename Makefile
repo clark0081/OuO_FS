@@ -34,7 +34,7 @@
 # TEST = samples/writeread 
 # TEST = samples/sample1 samples/sample2
 # TEST = samples/tsymlink
-TEST = samples/tls samples/sample1
+TEST = samples/tls samples/sample1 samples/sample2 samples/chdir samples/rmdir
 
 
 #

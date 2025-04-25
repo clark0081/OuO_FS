@@ -263,8 +263,13 @@ short createFile(char *filename, short parent_inum, int file_type) {
         TracePrintf(1, "createFile() filename already exist %d\n", exist_inum);
         // return ERROR;
         INODE_INFO *exist_inode_info = get_use_inode(exist_inum);
-        exist_inode_info->val->size = 0;
-        return exist_inum;
+        if (exist_inode_info->val->type == file_type && file_type == INODE_REGULAR) {
+            exist_inode_info->val->size = 0;
+            return exist_inum;
+        }else {
+            TracePrintf(1, "createFile() exist file is not INODE_REGULAR!\n");
+            return ERROR;
+        }
     }
 
     INODE_INFO *new_inode_info = get_new_inode();
@@ -852,10 +857,21 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
     // on any error, the value ERROR is returned. 
     // Note that it is an error to attempt to remove the root directory; 
     // it is also an error to attempt to remove individually the ��.�� or ��..�� entry from a directory.
-    if(strcmp(pathname, "/") || strcmp(pathname, ".") || strcmp(pathname, "..") == 0){
-        TracePrintf(0, "in RmDirHandler()...attempting to remove root or . or ..\n");
+    // if(strcmp(pathname, "/") == 0 || strcmp(pathname, ".") || strcmp(pathname, "..") == 0){
+    //     TracePrintf(0, "in RmDirHandler()...attempting to remove root or . or ..\n");
+    //     return ERROR;
+    // }
+    // 1) Always reject the root directory itself
+    if (strcmp(pathname, "/") == 0) {
+        TracePrintf(0, "in RmDirHandler()...attempting to remove root\n");
         return ERROR;
     }
+    char* filename = getFilename(pathname);
+    if (strcmp(filename,".") == 0 || strcmp(filename,"..") == 0) {
+        TracePrintf(0, "in RmDirHandler()...attempting to remove path end with . or ..\n");
+        return ERROR;
+    }
+
     size_t len = strlen(pathname);
     int need_dot = (len > 0 && pathname[len - 1] == '/');
 
@@ -917,10 +933,8 @@ int RmDirHandler(char *pathname, short cur_dir_idx)
 	    }
 	    if(inodeNum == entry.inum){
 	        struct dir_entry remove = createEntry(0, "\0");
-            WriteHandler(inodeNum, i * sizeof(struct dir_entry), &remove, sizeof(struct dir_entry));
-            info->val->type = INODE_FREE;    
-            set_bitmap_free(inode_bitmap, inodeNum, NUM_INODES);
-            info->isDirty = 1;
+            WriteHandler(parent_info->inodeNum, i * sizeof(struct dir_entry), &remove, sizeof(struct dir_entry));
+            free_inode(inodeNum);
 	        break;
 	    }
     }
