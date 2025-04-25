@@ -97,5 +97,6 @@ int extend(INODE_INFO* , int);
 
 int free_inode(int);
 int sync();
+int print_bitmap(unsigned char* , int);
 
 #endif 
