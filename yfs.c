@@ -1075,6 +1075,7 @@ int main(int argc, char** argv) {
     init_inode_block();
     Register(FILE_SERVER);
     
+    print_bitmap(inode_bitmap,NUM_INODES);
     int pid = Fork();
     if (pid == 0) {
         // child process
