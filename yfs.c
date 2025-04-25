@@ -26,7 +26,7 @@ short findInumInDir(char * filename, short dir) {
             TracePrintf(1, "findInumInDir() cannot read dir entry in directory %d\n", dir);
             return ERROR;
         }
-
+        // TracePrintf(1, "fiid() %d %s\n", entry.inum, entry.name);
         if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
             TracePrintf(1, "findInumInDir() find %s with inum %d in directory %d\n", filename, entry.inum, dir);
             return entry.inum;
@@ -89,7 +89,7 @@ short resolvePath(char *pathname, short cur_dir_in) {
 
         short inum = findInumInDir(node_name, cur_dir); // the entry I just found
         if (inum == -1 || inum == 0) {
-            TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s\n", node_name, cur_dir, org_pathname);
+            TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s, inum = %d\n", node_name, cur_dir, org_pathname, inum);
             return ERROR;
         }
         INODE_INFO* next_inode_info = get_use_inode(inum);
@@ -219,21 +219,24 @@ int addEntry(short inum, struct dir_entry new_entry) {
     }
 
     int size = inode_info->val->size;
+    // TracePrintf(1, "addEntry() size %d\n", size);
     int cur_pos = 0;
     struct dir_entry entry;
 
     // while loop
-    while (cur_pos < (int)(size - sizeof(struct dir_entry))) {
+    // while (cur_pos < (int)(size - sizeof(struct dir_entry))) {
+    while (cur_pos < size) {
         if (ReadHandler(inum, cur_pos, &entry, sizeof(struct dir_entry)) == -1) {
             TracePrintf(1, "addEntry() ReadHandler error!\n");
             return ERROR;
         }
+        // TracePrintf(1, "ae() %d %s\n", entry.inum, entry.name);
         if (entry.inum == 0) {
             break;
         }
         cur_pos += sizeof(struct dir_entry);
     }
-
+    // TracePrintf(1, "addEntry() cur_pos %d   %d\n", cur_pos, sizeof(struct dir_entry));
     int res = WriteHandler(inum, cur_pos, &new_entry, sizeof(struct dir_entry));
     if (res == -1) {
         TracePrintf(1, "addEntry() WriteHandler error\n");
@@ -254,7 +257,7 @@ short createFile(char *filename, short parent_inum, int file_type) {
         return ERROR;
     }
     else if (exist_inum > 0) {
-        TracePrintf(1, "createFile() filename already exist\n");
+        TracePrintf(1, "createFile() filename already exist %d\n", exist_inum);
         // return ERROR;
         INODE_INFO *exist_inode_info = get_use_inode(exist_inum);
         exist_inode_info->val->size = 0;
@@ -640,6 +643,9 @@ int WriteHandler(short inum, int position, void *buf, int size)
         // need to assign new block 
         extend(cur_inode_info, position + size);
     }
+    else if (position + size > cur_inode->size) {
+        cur_inode->size = position + size;
+    }
 
     int total_write_count = 0;
     int req_left = 0, block_left = 0, write_count = 0;
@@ -797,7 +803,7 @@ int MkDirHandler(char *pathname, short cur_dir_idx)
     */
     short parent_inum = getParentInum(pathname, cur_dir_idx);
     if (parent_inum == -1) {
-        TracePrintf(1,"CreateHandler() cannot find parent inode\n");
+        TracePrintf(1,"MkDirHandler() cannot find parent inode\n");
         return ERROR;
     }
     char* filename = getFilename(pathname);
