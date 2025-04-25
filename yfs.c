@@ -643,12 +643,22 @@ int WriteHandler(short inum, int position, void *buf, int size)
     cur_inode_info->isDirty = 1;
 
     struct inode* cur_inode = cur_inode_info->val;
-    if (position + size > BLOCKSIZE * (cur_inode->size/ BLOCKSIZE + 1)) {
-        // need to assign new block 
-        extend(cur_inode_info, position + size);
-    }
-    else if (position + size > cur_inode->size) {
-        cur_inode->size = position + size;
+    // if (position + size > BLOCKSIZE * (cur_inode->size/ BLOCKSIZE + 1)) {
+    //     // need to assign new block 
+    //     extend(cur_inode_info, position + size);
+    // }
+    // else if (position + size > cur_inode->size) {
+    //     cur_inode->size = position + size;
+    // }
+    int end_pos = position + size;
+    if (end_pos > cur_inode->size) {
+        int old_block_count = (cur_inode->size + BLOCKSIZE - 1) / BLOCKSIZE;
+        int new_block_count = (end_pos + BLOCKSIZE - 1) / BLOCKSIZE;
+
+        if (new_block_count > old_block_count) {
+            extend(cur_inode_info, end_pos);
+        }
+        cur_inode->size = end_pos;
     }
 
     int total_write_count = 0;
