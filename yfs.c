@@ -15,7 +15,10 @@ short findInumInDir(char * filename, short dir) {
         TracePrintf(1, "findInumInDir() cannot get inode for %s\n", filename);
         return ERROR;
     }
-
+    if (dir_inode->val->type != INODE_DIRECTORY) {
+        TracePrintf(1, "findInumInDir() not a dir %s\n", filename);
+        return ERROR;
+    }
     // int numEntries = info->inodeVal->size / sizeof(struct dir_entry);
     int n = dir_inode->val->size / sizeof(struct dir_entry);
     int i;
@@ -122,8 +125,8 @@ short resolvePath(char *pathname, short cur_dir_in) {
                 symlink_count++;
                 if (new_pathname[0] == '/') { 
                     cur_dir = ROOTINODE; 
-                    continue;
                 }
+                continue;
             }
         }
         cur_dir = inum;
@@ -254,6 +257,10 @@ int addEntry(short inum, struct dir_entry new_entry) {
 }
 
 short createFile(char *filename, short parent_inum, int file_type) {
+    if (strlen(filename) > DIRNAMELEN) {
+        TracePrintf(1, "createFile() file name exceed DIRNAMELEN!\n");
+        return ERROR;
+    }
     short exist_inum = findInumInDir(filename, parent_inum);
     if (exist_inum == -1) {
         TracePrintf(1, "createFile() find filename error!\n");
@@ -754,7 +761,7 @@ int LinkHandler(char *oldname, char *newname, short cur_dir_idx)
     // It is an error if the file newname already exists. 
     short new_inum = resolvePath(newname, cur_dir_idx);
     
-    if (new_inum >= 0) {
+    if (new_inum > 0) {
         TracePrintf(1,"LinkHandler() newname already exists\n");
         return ERROR;
     }
@@ -762,6 +769,10 @@ int LinkHandler(char *oldname, char *newname, short cur_dir_idx)
     // On success, this request returns 0; on
     // any error, the value ERRORis returned.
     short parent_inum = getParentInum(newname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"LinkHandler() cannot find parent inode\n");
+        return ERROR;
+    }
     char* filename = getFilename(newname);
     addEntry(parent_inum, createEntry(old_inum, filename));
     return 0;
@@ -781,6 +792,10 @@ int SymLinkHandler(char *oldname, char *newname, short cur_dir_idx)
 
     
     short parent_inum = getParentInum(newname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"SymLinkHandler() cannot find parent inode\n");
+        return ERROR;
+    }
     char* filename = getFilename(newname);
     short inum = createFile(filename, parent_inum, INODE_SYMLINK);
     if(inum == ERROR) {
@@ -823,6 +838,10 @@ int ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx)
     // On any error, the value ERROR is returned.
 
     short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"ReadlinkHandler() cannot find parent inode\n");
+        return ERROR;
+    }
     char* filename = getFilename(pathname);
     short inum = findInumInDir(filename,parent_inum);
     return ReadHandler(inum, 0, buf, len);
@@ -1027,40 +1046,67 @@ int ChDirHandler(char *pathname, short cur_dir_idx)
     // The current directory of a process should be remembered by the inode number of that directory, within the file system library in that process. 
     // That current directory inode number should then be passed to the file server on each request that takes any file name arguments. 
     // The file pathname on this request must be a directory. On success, this request returns 0; on any error, the value ERROR is returned.
-    size_t len = strlen(pathname);
-    int need_dot = (len > 0 && pathname[len - 1] == '/');
+    // size_t len = strlen(pathname);
+    // int need_dot = (len > 0 && pathname[len - 1] == '/');
 
-    size_t new_len = len + (need_dot ? 1 : 0) + 1;
-    char* new_path = (char*)malloc(new_len);
+    // size_t new_len = len + (need_dot ? 1 : 0) + 1;
+    // char* new_path = (char*)malloc(new_len);
 
-    if (!new_path) {
-        TracePrintf(0, "in ChDirHandler()... malloc failed\n");
-        perror("malloc failed");
+    // if (!new_path) {
+    //     TracePrintf(0, "in ChDirHandler()... malloc failed\n");
+    //     perror("malloc failed");
+    //     return ERROR;
+    // }
+    // strcpy(new_path, pathname);  
+    // if (need_dot) {
+    //     new_path[len] = '.';     
+    //     new_path[len + 1] = '\0';
+    // }
+    /*
+    short parent_inum = getParentInum(pathname, cur_dir_idx);
+    if (parent_inum == -1) {
+        TracePrintf(1,"CreateHandler() cannot find parent inode\n");
         return ERROR;
     }
-    strcpy(new_path, pathname);  
-    if (need_dot) {
-        new_path[len] = '.';     
-        new_path[len + 1] = '\0';
-    }
-    short inodeNum = resolvePath(new_path, cur_dir_idx);
-    if(inodeNum == -1){
-        TracePrintf(0, "in ChDirHandler()...resolvePath failed\n");
-        free(new_path);
+    char* filename = getFilename(pathname);
+    short exist_inum = findInumInDir(filename, parent_inum);
+    if (exist_inum == -1) {
+        TracePrintf(1, "createFile() find filename error!\n");
         return ERROR;
     }
     INODE_INFO* info = get_use_inode(inodeNum);
     if (info == NULL) {
         TracePrintf(0, "in ChDirHandler() get node error\n");
-        free(new_path);
+        return ERROR;
+    }
+    if(info->val->type == INODE_DIRECTORY){
+        return info->inodeNum;
+    }
+    else if (info->val->type == INODE_SYMLINK) {
+        char *sym_buf = malloc(MAXPATHNAMELEN+1);
+        if (ReadLinkHandler(filename, sym_buf, MAXPATHNAMELEN, parent_inum) == -1) {
+            free(sym_buf);
+            return ERROR;
+        }
+
+    }
+    TracePrintf(0, "in ChDirHandler()...not a directory\n");
+    return ERROR;
+    */
+    short inodeNum = resolvePath(pathname, cur_dir_idx);
+    if(inodeNum == -1){
+        TracePrintf(0, "in ChDirHandler()...resolvePath failed\n");
+        return ERROR;
+    }
+    INODE_INFO* info = get_use_inode(inodeNum);
+    if (info == NULL) {
+        TracePrintf(0, "in ChDirHandler() get node error\n");
         return ERROR;
     }   
     if(info->val->type != INODE_DIRECTORY){
         TracePrintf(0, "in ChDirHandler()...not a directory\n");
-        free(new_path);
         return ERROR;
     }
-    free(new_path);
     return info->inodeNum;
 }
 

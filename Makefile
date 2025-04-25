@@ -31,10 +31,8 @@
 
 # TEST = samples/tcreate samples/tcreate2 samples/topen2 samples/tlink samples/tunlink2 \
 # 	samples/writeread samples/tsymlink samples/tls samples/sample1 samples/sample2 
-# TEST = samples/writeread 
-# TEST = samples/sample1 samples/sample2
-# TEST = samples/tsymlink
-TEST = samples/tls samples/sample1 samples/sample2 samples/chdir samples/rmdir samples/symcreate
+
+TEST = samples/tls samples/sample1 samples/symcreate samples/tsymlink
 
 
 #
