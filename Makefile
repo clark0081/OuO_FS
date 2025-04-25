@@ -30,7 +30,7 @@
 
 # TEST = samples/sample1 samples/tcreate2 samples/tlink samples/topen2 samples/tunlink2 \
 # 		samples/sample2 samples/tcreate samples/tls samples/tsymlink samples/writeread
-TEST = samples/tcreate samples/tcreate2
+TEST = samples/tcreate samples/tcreate2 samples/topen2 samples/tlink samples/tunlink2 
 
 
 #

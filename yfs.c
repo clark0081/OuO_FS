@@ -55,6 +55,7 @@ short resolvePath(char *pathname, short cur_dir_in) {
     // main loop
     while (strlen(pathname) > 0) {
         // initialize
+        TracePrintf(1,"cur %s\n",pathname);
         int path_len = strlen(pathname);
 		memset(node_name,'\0',DIRNAMELEN + 1);
         
@@ -87,7 +88,7 @@ short resolvePath(char *pathname, short cur_dir_in) {
         */
 
         short inum = findInumInDir(node_name, cur_dir); // the entry I just found
-        if (inum == -1) {
+        if (inum == -1 || inum == 0) {
             TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s\n", node_name, cur_dir, org_pathname);
             return ERROR;
         }
@@ -536,7 +537,9 @@ int MessageHandler(char *msg, int pid)
 
 int OpenHandler(char *pathname, short cur_dir_idx)
 {
-    return resolvePath(pathname, cur_dir_idx);
+    int res = resolvePath(pathname, cur_dir_idx);
+    TracePrintf(1, "OpenHandler() res %d!\n", res);
+    return res;
     
 }
 

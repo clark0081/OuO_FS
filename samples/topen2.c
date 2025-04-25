@@ -8,6 +8,7 @@
 int
 main()
 {
+	printf("meow\n");
 	printf("\n%d\n\n", Open("/foo"));
 	printf("\n%d\n\n", Open("/bar"));
 	printf("\n%d\n\n", Open("/foo"));
