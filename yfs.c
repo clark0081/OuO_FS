@@ -266,7 +266,25 @@ short createFile(char *filename, short parent_inum, int file_type) {
         if (exist_inode_info->val->type == file_type && file_type == INODE_REGULAR) {
             exist_inode_info->val->size = 0;
             return exist_inum;
-        }else {
+        }
+        else if (exist_inode_info->val->type == INODE_SYMLINK) {
+            // get symlink 
+            // CreateHandler(pathname, cur_dir);
+            // ReadLinkHandler(char *pathname, char *buf, int len, short cur_dir_idx);
+            char *sym_buf = malloc(MAXPATHNAMELEN+1);
+            if (ReadLinkHandler(filename, sym_buf, MAXPATHNAMELEN, parent_inum) == -1) {
+                free(sym_buf);
+                return ERROR;
+            }
+            
+            int c_res = CreateHandler(sym_buf, parent_inum);
+            free(sym_buf);
+            if (c_res == -1) {
+                return ERROR;
+            }
+            return c_res;
+        }
+        else {
             TracePrintf(1, "createFile() exist file is not INODE_REGULAR!\n");
             return ERROR;
         }

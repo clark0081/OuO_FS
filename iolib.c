@@ -11,6 +11,7 @@
 struct file {
     short   inum;
     int     position;
+    int     reuse;
 };
 
 
@@ -25,6 +26,7 @@ void InitOpenfileVector(){
     for(int i = 0; i < MAX_OPEN_FILES; i++){
         open_files[i].inum = -1;
         open_files[i].position = 0;
+        open_files[i].reuse = 0;
     }
     open_files_count = 0;
     open_files_flag = 0;
