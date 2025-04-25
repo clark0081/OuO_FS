@@ -1065,6 +1065,8 @@ int SeekHandler(short inodeNum){
 
 int main(int argc, char** argv) {
     (void)argc;
+    init_inode_block();
+    init_lru();
     int pid = Fork();
     if (pid == 0) {
         // child process
