@@ -9,6 +9,7 @@ int
 main()
 {
     int err;
+    printf("QQ\n");
     write(2, "A\n", 2);
     err = Create("/foo");
     fprintf(stderr, "Create returned %d\n", err);

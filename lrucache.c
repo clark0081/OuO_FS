@@ -45,9 +45,9 @@ void init_lru(){
     inode_cache_len = 0;
     block_cache_len = 0;
     inode_head = (INODE_INFO*)malloc(sizeof(INODE_INFO));
-    inode_head = (INODE_INFO*)malloc(sizeof(INODE_INFO));
+    inode_tail = (INODE_INFO*)malloc(sizeof(INODE_INFO));
     block_head = (BLOCK_INFO*)malloc(sizeof(BLOCK_INFO));
-    block_head = (BLOCK_INFO*)malloc(sizeof(BLOCK_INFO));
+    block_tail = (BLOCK_INFO*)malloc(sizeof(BLOCK_INFO));
 
     inode_head->isDirty = 0;
     inode_head->inodeNum = -1;
@@ -59,10 +59,8 @@ void init_lru(){
     inode_tail->next = NULL;
     inode_tail->prev = NULL;
     inode_tail->val = NULL;
-
     inode_head->next = inode_tail;
     inode_tail->prev = inode_head;
-
     block_head->isDirty = 0;
     block_head->blockNum = -1;
     block_head->next = NULL;
@@ -71,7 +69,6 @@ void init_lru(){
     block_tail->blockNum = -1;
     block_tail->next = NULL;
     block_tail->prev = NULL;
-
     block_head->next = block_tail;
     block_tail->prev = block_head;
 }
