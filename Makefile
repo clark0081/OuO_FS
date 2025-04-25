@@ -28,9 +28,13 @@
 #
 #TEST = sample1 sample2 tcreate tcreate2 tlink tls topen2 tsymlink
 
-# TEST = samples/sample1 samples/tcreate2 samples/tlink samples/topen2 samples/tunlink2 \
-# 		samples/sample2 samples/tcreate samples/tls samples/tsymlink samples/writeread
-TEST = samples/tcreate samples/tcreate2 samples/topen2 samples/tlink samples/tunlink2 
+
+# TEST = samples/tcreate samples/tcreate2 samples/topen2 samples/tlink samples/tunlink2 \
+# 	samples/writeread samples/tsymlink samples/tls samples/sample1 samples/sample2 
+# TEST = samples/writeread 
+# TEST = samples/sample1 samples/sample2
+TEST = samples/tsymlink
+# TEST = samples/tls
 
 
 #

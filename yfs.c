@@ -86,14 +86,14 @@ short resolvePath(char *pathname, short cur_dir_in) {
             /bbb/ccc
                 |
         */
-
+        TracePrintf(1,"node name %s\n", node_name);
         short inum = findInumInDir(node_name, cur_dir); // the entry I just found
         if (inum == -1 || inum == 0) {
             TracePrintf(1, "resolvePath() cannot find files %s in directory %d for %s, inum = %d\n", node_name, cur_dir, org_pathname, inum);
             return ERROR;
         }
         INODE_INFO* next_inode_info = get_use_inode(inum);
-
+        TracePrintf(1,"node num:  inum %d  res.inum %d\n", inum, next_inode_info->inodeNum);
         if (next_inode_info->val->type == INODE_SYMLINK) {
             if(symlink_count >= MAXSYMLINKS) {
                 TracePrintf(1, "resolvePath() reach maximun symlink in traversal for %s.\n", org_pathname);
@@ -112,7 +112,7 @@ short resolvePath(char *pathname, short cur_dir_in) {
                     strcat(new_pathname, "/");
 					strcat(new_pathname, pathname);
                 }
-
+                TracePrintf(1,"new name %s\n", new_pathname);
                 // free alloc pathname
                 if (alloc_pathname) { free(alloc_pathname); }
                 alloc_pathname = new_pathname;
@@ -152,6 +152,9 @@ int getParentInum(char *pathname, short cur_dir_in) {
     // root
     if (parent_len == 1 && pathname[0] == '/') {
         return ROOTINODE;
+    }
+    else if (parent_len == 0) {
+        return cur_dir_in;
     }
 
     // non root
@@ -315,6 +318,7 @@ int MessageHandler(char *msg, int pid)
         char* pathname = (char*)malloc(pathname_len + 1);
         CopyFrom(pid, (void*)pathname, pathname_addr, pathname_len);
         pathname[pathname_len] = '\0';
+        TracePrintf(1, "pn %s cd %d\n", pathname, cur_dir);
         res = CreateHandler(pathname, cur_dir);
         if (res == -1) {
             TracePrintf(1, "CreateHandler() error!\n");
@@ -716,11 +720,8 @@ int LinkHandler(char *oldname, char *newname, short cur_dir_idx)
     }
     // It is an error if the file newname already exists. 
     short new_inum = resolvePath(newname, cur_dir_idx);
-    if (new_inum == -1) {
-        TracePrintf(1,"LinkHandler() error in resolve newname path\n");
-        return ERROR;
-    }
-    else if (new_inum > 0) {
+    
+    if (new_inum >= 0) {
         TracePrintf(1,"LinkHandler() newname already exists\n");
         return ERROR;
     }
@@ -924,18 +925,24 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
         TracePrintf(1,"UnlinkHandler() cannot find parent inode\n");
         return ERROR;
     }
+    
+    INODE_INFO* parent_info = get_use_inode(parent_inum);
+    if (parent_info->val->type != INODE_DIRECTORY) {
+        TracePrintf(1,"UnlinkHandler() parent inode is not a directory\n");
+        return ERROR;
+    }
     char* filename = getFilename(pathname);
     // loop through parent's data to find file name
-    INODE_INFO* parent_info = get_use_inode(parent_inum);
     int inum = -1;
     INODE_INFO * node_info = NULL;
     struct dir_entry entry;
-    for (int pos = 0; pos < (int)(parent_info->val->size - sizeof(struct dir_entry)); pos += sizeof(struct dir_entry)) {
+    for (int pos = 0; pos < parent_info->val->size; pos += sizeof(struct dir_entry)) {
+        //TracePrintf(1, "unlinkHandler() pos %d\n", pos);
         if (ReadHandler(parent_inum, pos, &entry, sizeof(struct dir_entry)) == -1) {
             TracePrintf(1, "UnlinkHandler() ReadHandler error!\n");
             return ERROR;
         }
-
+        TracePrintf(1, "unlink() pos %d/ entry %d %s\n", pos, entry.inum, entry.name);
         if (strncmp(filename, entry.name, DIRNAMELEN) == 0) {
             inum = entry.inum;
             node_info = get_use_inode(inum);
@@ -952,14 +959,19 @@ int UnlinkHandler(char* pathname, short cur_dir_idx) {
             break;  
         }
     }
-    // check inode nlink
-    node_info->val->nlink--;
-    if (node_info->val->nlink <= 0) {
-        // delete inode and block
-        free_inode(inum);
+    if (node_info != NULL) {
+        // check inode nlink
+        node_info->val->nlink--;
+        if (node_info->val->nlink <= 0) {
+            // delete inode and block
+            free_inode(inum);
+        }
+        return 0;
     }
-
-    return 0;
+    else {
+        TracePrintf(1, "UnlinkHandler() no link found!\n");
+        return ERROR;
+    }
 }
 
 int ChDirHandler(char *pathname, short cur_dir_idx)

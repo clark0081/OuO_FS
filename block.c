@@ -16,6 +16,7 @@ BLOCK_WRAP* block_hashtable[HASH_TABLE_SIZE] = {0};
 struct inode_info* get_use_inode(int inodeNum){
     INODE_INFO* result  = get_inode_lru(inodeNum);
     if(result->inodeNum == -1){
+        TracePrintf(1, "@@@@@\n");
         INODE_INFO* res = (INODE_INFO*)malloc(sizeof(INODE_INFO));
         int blockNum = INODE_TO_BLOCK(inodeNum);
         BLOCK_INFO* tempBlock = get_block(blockNum);
