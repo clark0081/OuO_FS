@@ -1,0 +1,55 @@
+# yalnix
+A simulated Unix like file system
+## group members
+- Po-Hsi Lin pl55
+- Yen-ting Cho yc206
+
+## IPC
+- Send: user process send the request to yfs
+- Receive: yfs catch the result from user process "send"
+- Reply: yfs respond to user process
+- Copyto: write the content from file system to user process
+- Copyfrom: read data(pathname, write target buffer etc) from user process to yfs
+## yfs
+yfs contains handlers of file system APIS.
+- OpenHandler: open a file and return its inum
+- CreateHandler: create a file and return its inum, truncate the file size to 0 if it exists
+- ReadHandler: read data from  file system to a buffer
+- WriteHandler: write data from file system based on external buffer
+- LinkHandler: add a new dir_entry of oldname to newname
+- UnlinkHandler: remove the directory entry for pathname, and if this is the last link to a file, the file
+itself should be deleted by freeing its inode
+- SymlinkHandler: create a soft link of oldname to  a new node newname
+- SeekHandler: return the size of an inode
+- ReadlinkHandler: read the target of a symbolic link
+- MkdirHandler: create new directroy
+- RmdirHandler: remove a directory
+- ChdirHandler: change to a directory and return its inum
+
+Besides, Here are some helper functions:
+- findInumInDir(): find whether a file exists in a directory and return its inum
+- resolvePath(): resolve the pathname string node by node and return the inum of last node
+- addEntry(): traverse the data block of a directory and append a dir_entry upon any hole. if there is no hole, grow size and append at the end.
+
+## block
+The block.c and block.h files are fundamental components of the yalnix file system implementation. These files are responsible for handling the low-level block operations that form the foundation of the file system.
+
+1. Provide Block Abstraction : Hide the details of the underlying storage device
+2. Manage Block Allocation : Track which blocks are in use and which are free using bitmaps
+3. Handle I/O Operations : Efficiently read and write blocks to the storage 
+
+- init_inode_block(): the function initializes the inode block, which have to traverse the indirect blocks to update the bitmaps
+- sync(): the function synchronizes the block cache with the storage.
+
+## lrucache
+The LRU cache serves several important purposes in the yalnix file system:
+
+1. Performance Optimization : By caching frequently accessed blocks in memory, the file system can avoid expensive disk I/O operations.
+2. Write Buffering : The cache can buffer write operations, allowing multiple writes to be combined before being flushed to disk.
+
+3. Memory Management : The LRU (Least Recently Used) eviction policy ensures that the most valuable blocks stay in memory when the cache reaches capacity.
+4. Consistency Management : The dirty flag tracking helps ensure that modified blocks are properly written back to disk.
+
+- Implement deque for inode and block cache as well as the Hash table to quickly reference the cache.
+
+

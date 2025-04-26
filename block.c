@@ -111,26 +111,18 @@ int find_free(unsigned char* bitmap, int len) {
 
 void init_inode_block(){
     
-    TracePrintf(0, "1\n");
     INODE_INFO* inode_header = (INODE_INFO*)malloc(sizeof(INODE_INFO));
-    TracePrintf(0, "11\n");
     int blockNum = INODE_TO_BLOCK(0);
-    TracePrintf(0, "blockNum %d\n",blockNum);
     BLOCK_INFO* tempBlock = get_block(blockNum);
-    TracePrintf(0, "13\n");
     int offset = INODE_IN_BLOCK_ADDR(0);
-    TracePrintf(0, "14\n");
     struct inode* temp = malloc(sizeof(struct inode));
-    TracePrintf(0, "15\n");
     memcpy(temp, tempBlock->data + offset, sizeof(struct inode));
-    TracePrintf(0, "2\n");
     inode_header->next = NULL;
     inode_header->prev = NULL;
     inode_header->val = temp;
     inode_header->isDirty = 0;
     inode_header->inodeNum = 0;
     struct fs_header* myHeader = (struct fs_header*)(inode_header->val);
-    TracePrintf(0, "3\n");
     // init hasg table to null
     memset(inode_hashtable, 0, sizeof(inode_hashtable));
     memset(block_hashtable, 0, sizeof(block_hashtable));
