@@ -695,7 +695,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
     if (position > original_size) {
         int sup_len = position - original_size;
         char* zerobuffer = malloc(sup_len);
-        for (int i = 0; i < sup_len; i++) {zerobuffer[i] = '\0'};
+        for (int i = 0; i < sup_len; i++) {zerobuffer[i] = '\0'; } 
 
         if (WriteHandler(inum, original_size,(void*)zerobuffer, sup_len) == -1) {
             TracePrintf(1,"SymLinkHandler()  write oldname error\n");

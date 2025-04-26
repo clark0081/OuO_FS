@@ -18,7 +18,7 @@ main()
     printf("sym status %d\n", status);
 
     status = Create("sc_d1/sc_l1");
-    printf("Create status %d\n", status);
+    printf("--> Create status %d\n", status);
 
     status = SymLink("../sc_d2/sc_d3","sc_d1/sc_l2");
     printf("sym status %d\n", status);
