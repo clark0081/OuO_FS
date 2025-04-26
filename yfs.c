@@ -680,6 +680,7 @@ int WriteHandler(short inum, int position, void *buf, int size)
     // else if (position + size > cur_inode->size) {
     //     cur_inode->size = position + size;
     // }
+    int original_size = cur_inode->size;
     int end_pos = position + size;
     if (end_pos > cur_inode->size) {
         int old_block_count = (cur_inode->size + BLOCKSIZE - 1) / BLOCKSIZE;
@@ -689,6 +690,19 @@ int WriteHandler(short inum, int position, void *buf, int size)
             extend(cur_inode_info, end_pos);
         }
         cur_inode->size = end_pos;
+    }
+
+    if (position > original_size) {
+        int sup_len = position - original_size;
+        char* zerobuffer = malloc(sup_len);
+        for (int i = 0; i < sup_len; i++) {zerobuffer[i] = '\0'};
+
+        if (WriteHandler(inum, original_size,(void*)zerobuffer, sup_len) == -1) {
+            TracePrintf(1,"SymLinkHandler()  write oldname error\n");
+            free(zerobuffer);
+            return ERROR; 
+        }
+        free(zerobuffer);
     }
 
     int total_write_count = 0;
